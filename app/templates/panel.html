@@ -12,7 +12,7 @@
   {% for item in evaluaciones %}
     {% set evaluacion = item if docente else item.evaluacion %}
     {% set vista = item.presentacion %}
-    <article class="identity-card evaluation-card" aria-labelledby="evaluation-title-{{ loop.index }}">
+    <article class="identity-card evaluation-card{% if not docente %} student-evaluation{% endif %}" aria-labelledby="evaluation-title-{{ loop.index }}">
       <h3 id="evaluation-title-{{ loop.index }}">{{ evaluacion.titulo if evaluacion else 'Disponibilidad no verificable' }}</h3>
       {% if evaluacion %}
       <div class="evaluation-timing" data-time-display{% if not vista.reloj or not vista.apertura %} hidden{% endif %}>
@@ -34,8 +34,8 @@
       </dl>
       {% endif %}
       {% if not docente %}
-      <p class="availability-result" id="decision-{{ loop.index }}" role="status" aria-live="polite" data-state="{{ vista.estado }}">{{ icon('bloqueado', 'state-lock') }}{{ icon('autorizado', 'state-ok') }}<span data-availability-message>{{ vista.mensaje }}</span></p>
-      {% if evaluacion %}<button type="button" class="health-button" data-availability="/evaluaciones/{{ evaluacion.id }}/disponibilidad" aria-controls="decision-{{ loop.index }}">Actualizar disponibilidad {{ icon('pulso') }}</button>{% endif %}
+      <div class="availability-result" id="decision-{{ loop.index }}" role="status" aria-live="polite" data-state="{{ vista.estado }}">{{ icon('bloqueado', 'state-lock') }}{{ icon('autorizado', 'state-ok') }}<div><strong class="access-title" data-availability-title>{{ vista.titulo }}</strong><span class="access-reason" data-availability-message>{{ vista.detalle }}</span></div></div>
+      {% if evaluacion %}<button type="button" class="health-button" data-availability="/evaluaciones/{{ evaluacion.id }}/disponibilidad" aria-controls="decision-{{ loop.index }} query-{{ loop.index }}">Comprobar acceso {{ icon('pulso') }}</button><p class="query-feedback" id="query-{{ loop.index }}" data-query-feedback role="status" aria-live="polite" aria-atomic="true"></p>{% endif %}
       {% else %}<p>La disponibilidad se verifica para cada estudiante al consultar la evaluación.</p>{% endif %}
       <p class="field-help">Descarga de documentos pendiente de habilitación.</p>
     </article>

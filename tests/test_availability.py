@@ -46,6 +46,18 @@ def test_limite_inclusive(ensayo, hora, esperado):
     assert "no-store" in respuesta.headers["cache-control"]
 
 
+def test_consulta_informa_hora_real_independiente_del_reloj_simulado(ensayo):
+    login(ensayo)
+    fijar(ensayo[1], "2035-01-01T07:59:59")
+    antes = datetime.now(BOGOTA)
+    respuesta = ensayo[0].get(RUTA).json()
+    despues = datetime.now(BOGOTA)
+    consulta = respuesta["presentacion"]["consulta"]
+    assert antes <= datetime.fromisoformat(consulta["iso"]) <= despues
+    assert respuesta["hora_referencia"].startswith("2035-01-01T07:59:59")
+    assert consulta["fecha"] and consulta["hora"]
+
+
 @pytest.mark.parametrize("instante,codigo", [("2026-11-08T08:01:00",403), ("2026-11-09T12:59:59+00:00",403), ("2026-11-09T13:00:00+00:00",200), ("2026-11-10T07:00:00",200)])
 def test_fecha_completa_y_equivalencia_utc(ensayo, instante, codigo):
     login(ensayo)
@@ -233,11 +245,12 @@ def test_panel_asignado_muestra_estado_real_y_no_documento(ensayo):
     cliente, config, _, _ = ensayo
     login(ensayo)
     cerrado = cliente.get("/estudiante")
-    assert "Evaluación de laboratorio" in cerrado.text and "Examen bloqueado. Falta 1 segundo para la apertura" in cerrado.text
+    assert "Evaluación de laboratorio" in cerrado.text and "Examen bloqueado" in cerrado.text
+    assert "Falta 1 segundo para la apertura" in cerrado.text
     assert "America/Bogota" in cerrado.text
     fijar(config, "08:00:00")
     abierto = cliente.get("/estudiante")
-    assert "Horario cumplido. Acceso autorizado" in abierto.text
+    assert "Horario cumplido" in abierto.text and "Acceso autorizado" in abierto.text
     assert cliente.get("/descargar").status_code == 404
 
 

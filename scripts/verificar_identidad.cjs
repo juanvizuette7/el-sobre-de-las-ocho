@@ -131,18 +131,34 @@ networks:
     await pagina.waitForURL("**/estudiante");
     etapa = "disponibilidad";
     const botonDisponibilidad = pagina.getByRole("button", {
-      name: "Actualizar disponibilidad",
+      name: "Comprobar acceso",
     });
     const rutaDisponibilidad =
       await botonDisponibilidad.getAttribute("data-availability");
     const capturasHorarias = new Set();
     const comprobarDisponibilidad = async (codigo) => {
-      const [respuesta] = await Promise.all([
-        pagina.waitForResponse(
-          (r) => new URL(r.url()).pathname === rutaDisponibilidad,
-        ),
-        botonDisponibilidad.click(),
-      ]);
+      let solicitudes = 0;
+      const contar = (r) => {
+        if (new URL(r.url()).pathname === rutaDisponibilidad) solicitudes++;
+      };
+      pagina.on("request", contar);
+      const inicio = performance.now();
+      const pendiente = pagina.waitForResponse(
+        (r) => new URL(r.url()).pathname === rutaDisponibilidad,
+      );
+      await botonDisponibilidad.click();
+      // Carga perceptible y bloqueo incluso frente a eventos repetidos por código.
+      assert.equal(await botonDisponibilidad.isDisabled(), true);
+      assert.equal(await botonDisponibilidad.getAttribute("aria-busy"), "true");
+      assert.equal(
+        await pagina.locator("[data-query-feedback]").textContent(),
+        "Consultando el servidor...",
+      );
+      await botonDisponibilidad.evaluate((boton) => {
+        boton.click();
+        boton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      });
+      const respuesta = await pendiente;
       assert.equal(respuesta.status(), codigo);
       const decision = await respuesta.json();
       assert.equal(decision.autorizado, codigo === 200);
@@ -150,10 +166,43 @@ networks:
       assert.equal(respuesta.headers()["content-disposition"], undefined);
       const vista = decision.presentacion;
       await pagina.waitForFunction(
+        () =>
+          document.querySelector("[data-query-feedback]")?.dataset.state ===
+          "complete",
+      );
+      assert.ok(
+        performance.now() - inicio >= 550,
+        "La carga debe ser perceptible, incluso con respuesta rápida",
+      );
+      assert.equal(
+        solicitudes,
+        1,
+        "Las pulsaciones repetidas no duplican consultas",
+      );
+      pagina.off("request", contar);
+      assert.equal(await botonDisponibilidad.isEnabled(), true);
+      assert.equal(await botonDisponibilidad.getAttribute("aria-busy"), null);
+      assert.equal(
+        await pagina.locator("[data-query-feedback] strong").textContent(),
+        "Verificación completada",
+      );
+      assert.equal(
+        await pagina.locator("[data-query-feedback] time").count(),
+        0,
+      );
+      assert.equal(
+        await pagina.locator("[data-query-feedback]").textContent(),
+        "Verificación completada",
+      );
+      await pagina.waitForFunction(
         (texto) =>
           document.querySelector("[data-availability-message]")?.textContent ===
           texto,
-        vista.mensaje,
+        vista.detalle,
+      );
+      assert.equal(
+        await pagina.locator("[data-availability-title]").textContent(),
+        vista.titulo,
       );
       if (decision.motivo === "evaluacion_no_asignada") {
         assert.equal(vista.estado, "restricted");
@@ -232,6 +281,36 @@ networks:
     );
     resumen.push(
       "Presentación: fecha española, reloj 12 h con segundos, apertura separada y estados exactos a 07:59:59/08:00; escritorio/móvil y axe A/AA correctos",
+    );
+    // Fallo de transporte deliberado: no se fabrica ninguna respuesta de autorización.
+    await pagina.route("**" + rutaDisponibilidad, (ruta) =>
+      ruta.abort("failed"),
+    );
+    await botonDisponibilidad.click();
+    await pagina.waitForFunction(
+      () =>
+        document.querySelector("[data-query-feedback]")?.dataset.state ===
+        "error",
+    );
+    assert.equal(await botonDisponibilidad.isEnabled(), true);
+    assert.equal(
+      await pagina.locator(".availability-result").getAttribute("data-state"),
+      "error",
+    );
+    assert.equal(await pagina.locator("[data-time-display]").isHidden(), true);
+    assert.equal(await pagina.locator("[data-query-feedback] time").count(), 0);
+    assert.match(
+      await pagina.locator("[data-availability-title]").textContent(),
+      /no verificada/,
+    );
+    await pagina.screenshot({
+      path: ".qa/capturas/consulta-error-390.png",
+      fullPage: true,
+    });
+    await pagina.unroute("**" + rutaDisponibilidad);
+    await comprobarDisponibilidad(403);
+    resumen.push(
+      "4 comprobaciones del botón aprobadas: carga perceptible (mínimo 600 ms), confirmación sin hora real visible, error sin confirmación anterior y pulsaciones repetidas con una sola petición; recuperación real correcta",
     );
     assert.equal(
       (await contexto.cookies()).find((c) => c.name === "sobre_sesion")

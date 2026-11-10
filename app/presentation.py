@@ -51,4 +51,13 @@ def presentar_decision(decision: dict) -> dict:
                 vista["mensaje"] = "Examen bloqueado. Falta 1 segundo para la apertura"
     elif decision["motivo"] == "evaluacion_no_asignada":
         vista["mensaje"] = "Acceso restringido. No tienes esta evaluación asignada. Cumplir el horario no autoriza el acceso sin asignación."
+    # Título y motivo visuales derivados de la decisión ya resuelta por la política.
+    if vista["estado"] == "ok":
+        vista.update(titulo="Acceso autorizado", detalle="Horario cumplido")
+    elif decision["motivo"] == "fuera_de_horario":
+        vista.update(titulo="Examen bloqueado", detalle=vista["mensaje"].removeprefix("Examen bloqueado. "))
+    elif decision["motivo"] == "evaluacion_no_asignada":
+        vista.update(titulo="Acceso restringido", detalle="Evaluación no asignada. Cumplir el horario no autoriza el acceso sin asignación.")
+    else:
+        vista.update(titulo="Acceso restringido", detalle=vista["mensaje"])
     return {**decision, "presentacion": vista}

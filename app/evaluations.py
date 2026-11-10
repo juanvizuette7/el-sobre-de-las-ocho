@@ -2,12 +2,13 @@
 
 from fastapi import APIRouter, Path, Request
 from fastapi.responses import JSONResponse
+from datetime import datetime
 
 from app.db import conexion
 from app.policy import consultar_disponibilidad
 from app.sessions import NOMBRE_COOKIE
-from app.presentation import presentar_decision, presentar_programacion
-from app.clock import leer_reloj
+from app.presentation import presentar_decision, presentar_programacion, fecha_hora_visual
+from app.clock import leer_reloj, BOGOTA
 
 router = APIRouter()
 
@@ -40,4 +41,7 @@ def evaluaciones_del_panel(request: Request, sesion, docente: bool) -> list[dict
 def disponibilidad(request: Request, evaluacion_id: str = Path(pattern=r"^[a-zA-Z0-9_-]{1,64}$")):
     """Expone una decisión real JSON; un 200 no representa descarga o integridad."""
     decision = consultar_disponibilidad(request.app.state.config, request.cookies.get(NOMBRE_COOKIE), evaluacion_id)
-    return JSONResponse(presentar_decision(decision), status_code=decision["codigo"])
+    respuesta = presentar_decision(decision)
+    # Hora real de esta respuesta, independiente de la referencia simulada del recurso.
+    respuesta["presentacion"]["consulta"] = fecha_hora_visual(datetime.now(BOGOTA).isoformat())
+    return JSONResponse(respuesta, status_code=decision["codigo"])
