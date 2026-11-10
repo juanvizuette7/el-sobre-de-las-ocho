@@ -29,7 +29,8 @@ def comprobar(condicion: bool, descripcion: str) -> None:
 
 def verificar() -> None:
     """Valida exposición, salud y respuestas del proxy que se está ejecutando."""
-    abrir = lambda url, timeout=5: urllib.request.urlopen(url, timeout=timeout, context=CONTEXTO_TLS)
+    # Las llamadas entregan únicamente la URL local HTTPS que construye este verificador.
+    abrir = lambda url, timeout=5: urllib.request.urlopen(url, timeout=timeout, context=CONTEXTO_TLS)  # nosec B310
     configuracion = json.loads(comando_docker("compose", "config", "--format", "json"))
     comprobar(set(configuracion["services"]) == {"app", "nginx"}, "exactamente dos servicios principales")
     for servicio in ["app", "nginx"]:

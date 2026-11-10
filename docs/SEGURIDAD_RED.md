@@ -40,4 +40,4 @@ Se observan handshake, registros cifrados, IP/puerto, tamaños y tiempos; no el 
 
 ## Límites
 
-La CA es local y de desarrollo. TLS protege el tránsito navegador–Nginx; AES-GCM, RSA-OAEP y SHA-256 protegen el examen. No se implementa la Etapa 5 ni controles empresariales de VPN, firewall, NAC o RADIUS.
+La CA es local y de desarrollo. TLS protege el tránsito navegador–Nginx; AES-GCM, RSA-OAEP y SHA-256 protegen el examen. Los controles de Etapa 5 se describen en [SEGURIDAD_ETAPA5.md](SEGURIDAD_ETAPA5.md). No se implementan controles empresariales de VPN, firewall, NAC o RADIUS.

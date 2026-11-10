@@ -1,6 +1,6 @@
 # El sobre de las ocho
 
-**Entrada vigente: https://127.0.0.1:8443/acceso.** Etapa 4 incorpora TLS 1.2/1.3, CA local, redirección HTTP y captura Wireshark del tráfico real del portal. Se retiraron los laboratorios independientes fuera del alcance. [Guía de red](docs/SEGURIDAD_RED.md), [evidencia 4](docs/evidencias/etapa-04.md).
+**Entrada vigente: https://127.0.0.1:8443/acceso.** Etapa 4 incorpora TLS 1.2/1.3, CA local, redirección HTTP y captura Wireshark del tráfico real del portal. La etapa 5 añade demostración SQL aislada, verificación del límite de acceso y análisis reproducible. [Seguridad de red](docs/SEGURIDAD_RED.md), [seguridad de aplicación](docs/SEGURIDAD_ETAPA5.md), [evidencia 5](docs/evidencias/etapa-05.md).
 
 Portal académico de Sistemas de Comunicaciones y Seguridad Informática. **Etapas 1, 2A, 2B y 3:** identidad/TOTP/RBAC, asignación/apertura y documentos protegidos, en FastAPI detrás de Nginx. Publicación de TXT UTF-8 con AES-256-GCM, RSA-OAEP y SHA-256. SQLite y sobres permanecen en el volumen privado existente. Etapa 4 añade HTTPS y captura del tráfico real del portal.
 
@@ -21,7 +21,7 @@ La portada permite iniciar sesión para acceder a los paneles privados. El docen
 
 El script conserva certificados existentes válidos y prepara permisos/servicios, pero **no instala confianza en Windows**. En un equipo nuevo revisar huella y confiar conscientemente en el certificado público CA del usuario según SEGURIDAD_RED antes de abrir el portal. En este equipo se instaló con autorización expresa; pruebas de navegador sin excepciones SSL. La RSA del examen/TOTP y los comandos anteriores se conservan.
 
-Resultados vigentes: **126 pruebas**, 22 comprobaciones TLS/red y 27 de infraestructura; regresión de autenticación y entrega por HTTPS. Para las consultas API de los scripts Node: `set "NODE_EXTRA_CA_CERTS=%CD%\certs\ca\ca.crt"` antes de ejecutarlos. Las notas HTTP de etapas previas siguientes son históricas; 8080 redirige a 8443.
+Resultados vigentes: **129 pruebas**, 22 comprobaciones TLS/red y 27 de infraestructura; regresión de autenticación y entrega por HTTPS. Para las consultas API de los scripts Node: `set "NODE_EXTRA_CA_CERTS=%CD%\certs\ca\ca.crt"` antes de ejecutarlos. Las notas HTTP de etapas previas siguientes son históricas; 8080 redirige a 8443.
 
 ## Sobre cifrado (etapa 3)
 

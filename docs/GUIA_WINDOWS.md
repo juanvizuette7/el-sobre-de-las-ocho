@@ -50,7 +50,7 @@ Fecha local de referencia: 9 de noviembre de 2026, zona de Bogotá. No se usa la
 | Puerto | 8080 sin escucha al comienzo; ahora reservado al Nginx del proyecto |
 | OpenSSL en PATH | No encontrado; HTTPS usa certificados generados por `app.certificates` |
 
-No se verifican aquí Bandit, Trivy o Nmap, que corresponden a etapas posteriores. Wireshark se usa para observar TLS del portal real; Cisco Packet Tracer y los laboratorios NAC/ARP se retiraron del alcance. Las imágenes se fijan por digest en Dockerfile/Compose; las bibliotecas exactas están en los dos archivos `requirements*.txt`.
+Bandit y Trivy se ejecutan de forma local según [SEGURIDAD_ETAPA5.md](SEGURIDAD_ETAPA5.md); Nmap no forma parte de la verificación actual. Wireshark se usa para observar TLS del portal real; Cisco Packet Tracer y los laboratorios NAC/ARP se retiraron del alcance. Las imágenes se fijan por digest en Dockerfile/Compose; las bibliotecas exactas están en los dos archivos `requirements*.txt`.
 
 ## Sesión cotidiana en CMD
 

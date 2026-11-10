@@ -166,4 +166,4 @@ node scripts\verificar_identidad.cjs
 
 Fuentes comprobadas: C1, `Semana 1 comunicación y seguridad informatica (martes 1ro de septiembre) CORRECTA.pdf`, p. 7 (simetría/asimetría/hashes), pp. 9–11 (AES-CBC/OpenSSL), pp. 12–13 (edición y hash MD5). GCM/OAEP/SHA-256 son las decisiones del proyecto, no algoritmos atribuidos al taller. C4 pp. 4–7 y 15 relaciona AAA, MFA, RBAC/ABAC y mínimo privilegio según la matriz ya existente. F3 pp. 1–3 y 6 exige publicación, límite inclusivo, original idéntico y copia distinta con huella conservada. No se acreditan P4–P10 ni nuevas prácticas de red con estos resultados.
 
-TLS protege el tránsito y complementa el cifrado en reposo. La etapa 4 añade HTTPS y captura Wireshark del portal; no incluye laboratorios independientes Cisco/NAC/ARP. No se incorporan SQLi, carga/DoS o DevSecOps completos, ni PDF/diapositivas finales.
+TLS protege el tránsito y complementa el cifrado en reposo. La etapa 4 añade HTTPS y captura Wireshark del portal. La etapa 5 incorpora únicamente una demostración SQL aislada, controles de acceso existentes y análisis reproducible; no se implementan carga/DoS o un flujo DevSecOps completo.

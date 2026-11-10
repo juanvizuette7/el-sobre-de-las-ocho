@@ -31,7 +31,8 @@ def main():
     respuestas = []
     for ruta in ("/health", "/acceso"):
         try:
-            with urllib.request.urlopen(f"https://127.0.0.1:8443{ruta}", context=contexto, timeout=5) as respuesta:
+            # Origen HTTPS fijo y ruta tomada de la lista local cerrada.
+            with urllib.request.urlopen(f"https://127.0.0.1:8443{ruta}", context=contexto, timeout=5) as respuesta:  # nosec B310
                 respuestas.append({"ruta": ruta, "estado": respuesta.status})
         except Exception as exc:
             respuestas.append({"ruta": ruta, "error": type(exc).__name__})

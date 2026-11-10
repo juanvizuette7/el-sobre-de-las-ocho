@@ -4,6 +4,7 @@ import json
 import re
 import secrets
 import time
+from types import SimpleNamespace
 
 import pyotp
 import pytest
@@ -185,6 +186,29 @@ def test_limite_persistente_credenciales(entorno):
         assert login(entorno, clave="fallo").status_code == 401
     cliente.cookies.clear()
     assert login(entorno, clave="fallo").status_code == 429
+
+
+def test_rate_limit_auditoria_y_recuperacion(entorno, monkeypatch):
+    import app.sessions as sesiones
+
+    cliente, config, _, _ = entorno
+    reloj = [int(time.time())]
+    monkeypatch.setattr(sesiones, "time", SimpleNamespace(time=lambda: reloj[0]))
+    for _ in range(config.limite_intentos):
+        assert login(entorno, clave="clave-ficticia-incorrecta").status_code == 401
+    assert login(entorno, clave="clave-ficticia-incorrecta").status_code == 429
+    with conexion(config) as db:
+        assert db.execute(
+            "SELECT 1 FROM eventos WHERE accion='autenticacion' AND motivo='limite_intentos'"
+        ).fetchone()
+
+    reloj[0] += config.ventana_intentos + 1
+    cliente.cookies.clear()
+    assert login(entorno, clave="clave-ficticia-incorrecta").status_code == 401
+    with conexion(config) as db:
+        assert db.execute(
+            "SELECT 1 FROM eventos WHERE accion='autenticacion' AND motivo='credenciales_invalidas'"
+        ).fetchone()
 
 
 def test_limite_persistente_mfa(entorno):

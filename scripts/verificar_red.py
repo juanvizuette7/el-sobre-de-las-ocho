@@ -70,7 +70,8 @@ def verificar():
                           ("/data/portal.sqlite3",404), ("/secrets/sobre-rsa.pem",404),
                           ("/sobres",404), ("/certs/ca/ca.key",404), ("/tls/server.key",404)]:
         try:
-            respuesta = urllib.request.urlopen("https://127.0.0.1:8443" + ruta, context=contexto, timeout=5)
+            # Origen HTTPS fijo y rutas seleccionadas desde una lista local cerrada.
+            respuesta = urllib.request.urlopen("https://127.0.0.1:8443" + ruta, context=contexto, timeout=5)  # nosec B310
         except urllib.error.HTTPError as error:
             respuesta = error
         assert respuesta.code == codigo

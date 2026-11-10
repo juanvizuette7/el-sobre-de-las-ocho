@@ -1,8 +1,73 @@
 # Guía del estudiante: entender el sobre
 
-## Etapa 4: redes y HTTPS desde cero
+## Etapa 5: SQL Injection, límites y DevSecOps
 
-Esta es la explicación personal para estudiar. Las pantallas del programa conservan lenguaje de producto. El procedimiento técnico y las limitaciones verificadas están en [SEGURIDAD_RED.md](SEGURIDAD_RED.md); el manual gráfico/CLI del simulador está en [labs/network/README.md](../labs/network/README.md).
+### SQL Injection desde cero
+
+Una base de datos guarda información organizada en tablas. Una consulta SQL es una instrucción para leer o cambiar esos datos; por ejemplo, buscar una cuenta cuyo nombre coincida con un dato recibido.
+
+La SQL Injection aparece cuando el programa pega texto del usuario dentro de la instrucción SQL. Si el texto incluye comillas y operadores SQL, puede cambiar la instrucción. En el ejemplo, ` ' OR '1'='1' -- ` hace que una consulta concatenada devuelva las dos cuentas ficticias porque la condición siempre resulta verdadera y `--` comenta el resto.
+
+Una consulta parametrizada escribe la instrucción por separado, como `SELECT ... WHERE usuario=?`, y entrega el texto en otro argumento. SQLite interpreta ese argumento como un valor literal; comillas u operadores dentro de él no se convierten en instrucciones. El portal ya usa parámetros en sus consultas. La única consulta concatenada está en una demostración local con SQLite en memoria; no existe un endpoint vulnerable.
+
+Prueba desde CMD, en la carpeta del proyecto:
+
+```bat
+python scripts\demo_sql_injection.py
+```
+
+La consulta insegura debe listar `docente_demo` y `estudiante_demo`; la parametrizada no debe encontrar coincidencias para el texto manipulado. La base desaparece al cerrar el programa.
+
+### Rate limiting y auditoría
+
+Rate limiting (límite de solicitudes) cuenta intentos en un periodo. El portal ya limita autenticación y TOTP: cinco intentos por cuenta en 300 segundos y hasta 30 por origen. Al superar el límite responde **HTTP 429 Too Many Requests**, que significa que se enviaron demasiadas solicitudes por el momento. El bloqueo se registra con un motivo interno; no se guardan contraseña, código TOTP, cookie o cuerpo del formulario.
+
+La prueba usa claves aleatorias de los fixtures, una base temporal y un reloj controlado. No toca las cuentas reales ni espera cinco minutos:
+
+```bat
+docker build --target test -t el-sobre-de-las-ocho-tests:etapa5 .
+docker run --rm --network none --read-only --tmpfs /tmp el-sobre-de-las-ocho-tests:etapa5 python -m pytest -q -p no:cacheprovider tests/test_stage5.py tests/test_auth.py::test_rate_limit_auditoria_y_recuperacion
+```
+
+Se esperan cinco respuestas de credenciales incorrectas, luego 429, el evento `limite_intentos` en auditoría y una respuesta normal después de que vence la ventana simulada. No hay que limpiar nada: los datos temporales se descartan al terminar.
+
+### DevSecOps, Bandit, Trivy y CVE
+
+DevSecOps incorpora comprobaciones de seguridad al trabajo y a las entregas de software. No es una garantía de seguridad: ayuda a encontrar problemas temprano y repetir controles.
+
+Bandit analiza código Python estáticamente: revisa el texto del programa sin ejecutarlo. Trivy puede revisar dependencias, imágenes de contenedor, configuraciones y secretos. Una vulnerabilidad es una debilidad explotable bajo ciertas condiciones. Una CVE es un identificador público asignado a una vulnerabilidad conocida; no todo hallazgo de herramienta es una CVE ni todos los hallazgos aplican al uso concreto del programa.
+
+Bandit está fijado de forma temporal con `uvx`; no se instala globalmente. Ejecuta:
+
+```bat
+uvx --from bandit==1.9.4 bandit -r app scripts -ll
+```
+
+El hallazgo B608 en `demo_sql_injection.py` es esperado: el ejercicio contiene deliberadamente la consulta insegura para compararla, pero solo usa SQLite en memoria y datos ficticios. B310 de los verificadores se excluyó en la línea porque consultan únicamente `https://127.0.0.1` y rutas cerradas.
+
+Trivy se ejecuta como contenedor temporal. `docker save` exporta la imagen a `.qa`, directorio excluido por Git:
+
+```bat
+if not exist .qa\trivy mkdir .qa\trivy
+docker save -o .qa\trivy\portal-image.tar el-sobre-de-las-ocho-app:etapa1
+docker run --rm -v "%CD%:/project" aquasec/trivy:0.76.2 image --input /project/.qa/trivy/portal-image.tar --scanners vuln --severity HIGH,CRITICAL
+docker run --rm -v "%CD%:/project:ro" aquasec/trivy:0.76.2 fs --scanners vuln,misconfig,secret --skip-dirs /project/.git --skip-dirs /project/.qa --skip-dirs /project/certs --skip-dirs /project/data --skip-dirs /project/docs/material-profesor /project
+```
+
+La primera ejecución descarga la base de vulnerabilidades. En esta revisión, Trivy detectó dos registros críticos en la antigua imagen Debian 12. Se actualizó el digest de la base a Debian 13; el escaneo no detectó críticos y sí mostró registros High que requieren seguimiento. No se cambiaron en bloque las bibliotecas Python. El análisis de requisitos reportó cero vulnerabilidades.
+
+### Cómo explicar la evidencia
+
+- «La demostración insegura muestra el efecto de mezclar datos e instrucciones. En el portal real, las consultas usan parámetros.»
+- «El limitador aprovecha el contador persistente que ya existía; el 429 y la auditoría se comprueban en una base temporal.»
+- «Bandit analiza Python y encuentra la muestra intencional. Trivy analiza software y configuración; sus alertas se revisan por paquete y contexto.»
+- «Una CVE identifica un problema publicado; encontrarla no demuestra por sí solo que la ruta vulnerable esté expuesta en esta aplicación.»
+
+Preguntas posibles: **¿Por qué no probarlo en el login real?** Porque no hace falta para explicar el riesgo y pondría en peligro cuentas reales; se usa SQLite aislado. **¿Por qué 429?** Es el código HTTP para solicitudes excesivas según una política de límite. **¿Bandit encontró un fallo del portal?** El B608 corresponde a la demostración deliberada, no al SQL de producción. **¿Trivy limpio significa seguro?** No; solo informa lo que su base y los escáneres pudieron identificar en esa fecha. **¿Qué falta?** La etapa 6 y la revisión de los hallazgos High pendientes.
+
+## Etapa 4: HTTPS y tráfico del portal
+
+Esta es la explicación personal para estudiar. Las pantallas del programa conservan lenguaje de producto. El procedimiento técnico vigente para HTTPS y Wireshark está en [SEGURIDAD_RED.md](SEGURIDAD_RED.md). Las secciones antiguas de esta guía sobre Cisco, NAC y ARP ya no corresponden al alcance implementado; no deben ejecutarse ni presentarse como evidencia.
 
 ### Una historia para ubicar las piezas
 
@@ -98,149 +163,9 @@ Una sesión realmente vencida pide entrar de nuevo. No atrasar Windows para recu
 
 Qué decir: «Conservo las mismas identidades y el mismo sobre. Cambié el canal de comunicación; no cambié la regla horaria». El documento previamente publicado se verificó tras la transición sin reemplazarlo.
 
-### Demostración 3: Wireshark paso a paso
+### HTTPS y captura real con Wireshark
 
-**Wireshark** es un analizador que muestra paquetes capturados. **Npcap** es el componente que permite capturarlos en Windows, incluido loopback. **dumpcap** captura y **tshark** analiza desde terminal; ambos pertenecen a Wireshark. No son firewalls y no garantizan que una aplicación esté segura.
-
-Problema a observar: la misma marca ficticia visible en HTTP y cifrada en TLS. No usar contraseñas de ejemplo del portal, TOTP, cookies o exámenes. No capturar Wi-Fi «por si acaso»: seleccionar exclusivamente el tráfico local preparado.
-
-Si Wireshark no está instalado en otro equipo, ir a su web oficial, instalarlo incluyendo Npcap y herramientas de consola; aceptar los permisos de instalación conscientemente. Comprobar con `"C:\Program Files\Wireshark\dumpcap.exe" -D` y localizar **Adapter for loopback traffic capture**. En nuestro equipo se ejecutó realmente con Wireshark4.4.9/Npcap; no se supone que esté instalado en todos los computadores.
-
-1. Abrir CMD en la raíz y levantar el laboratorio separado:
-
-```bat
-docker compose -f labs\compose.red.yaml up -d
-```
-
-`-f` usa otra receta Compose y otro proyecto. Solo ofrece una marca fija en HTTP8082/HTTPS8444. No monta la base, RSA/TOTP o sobres del portal y no puede listar carpetas del repositorio.
-
-2. Abrir Wireshark. En la lista de interfaces, doble clic en loopback o abrir opciones y seleccionar solo esa interfaz. Antes de empezar, poner el **filtro de captura**:
-
-```text
-host 127.0.0.1 and (tcp port 8082 or tcp port 8444)
-```
-
-El filtro decide qué paquetes se guardan; excluye el portal8443 y las pruebas8445. No es igual al filtro de visualización que se escribe después en la barra superior. Si el filtro no es aceptado, detenerse y corregirlo antes de generar tráfico; no ampliar a toda la red.
-
-3. En otra CMD generar dos consultas sin cookies:
-
-```bat
-curl.exe http://127.0.0.1:8082/marca
-curl.exe --ssl-revoke-best-effort --cacert certs\ca\ca.crt https://127.0.0.1:8444/marca
-```
-
-`--cacert` indica qué raíz valida el servidor. El curl Windows/Schannel puede pedir revocación que una CA local no publica; `--ssl-revoke-best-effort` conserva comprobación de cadena/nombre y permite la ausencia de ese servicio local. No es `--insecure`. No agregar `-b` ni copiar cookies.
-
-No usar un navegador ya autenticado para este intercambio: las cookies se vinculan al host y pueden viajar entre puertos. curl/urllib sin almacén de cookies evitan ese problema.
-
-4. Pulsar el cuadrado rojo de detener captura. Guardar como `.qa\red\mi-comparacion.pcapng`, fuera de Git. Abrir filtro de visualización:
-
-```text
-tcp.port == 8082 || tcp.port == 8444
-```
-
-5. Probar `tcp.flags.syn == 1`: SYN y SYN-ACK muestran el comienzo de las conexiones TCP. Revisar origen/destino, puertos y tiempos. Ambos extremos son el computador local; las direcciones MAC de un enlace físico no tienen por qué aparecer como en Ethernet en una captura loopback.
-
-6. Seleccionar el flujo HTTP8082. Si no se identifica, clic derecho → Decode As → HTTP. Clic derecho → Follow → TCP Stream. Deben aparecer ruta `/marca`, cabeceras y `SOBRE-LAB-HTTP-HTTPS-2026` en claro. Cerrar el stream y limpiar el filtro de flujo que Wireshark haya dejado.
-
-7. Filtrar `tcp.port == 8444`. Decode As TLS si hace falta. Revisar ClientHello/ServerHello y registros TLS. Follow TCP Stream no muestra el cuerpo HTTP como texto: muestra bytes TLS. Las IP, puertos, tamaño y tiempos siguen visibles. TLS1.3 cifra parte del handshake; no esperar que todos los certificados o campos sean visibles en toda captura.
-
-8. Filtro `tcp contains "SOBRE-LAB-HTTP-HTTPS-2026"`: debe encontrar la marca solo en HTTP. No proporcionar claves de sesión al analizador ni activar SSLKEYLOGFILE en este ensayo. Un analizador que recibe las claves podría descifrar: eso sería otro experimento.
-
-9. Alternativa automática reproducible:
-
-```bat
-python scripts\capturar_comunicaciones.py
-```
-
-Captura ocho segundos, genera ambas consultas reales, usa tshark y guarda `.qa/red/http-https.pcapng` con resumen JSON. Nuestra captura real tuvo marca visible en un paquete HTTP, cero apariciones en claro en HTTPS, cinco registros TLS cifrados y cuatro paquetes con SYN/SYN-ACK. Los conteos pueden cambiar entre ejecuciones; no memorizar esos números como si fueran el protocolo. Lo importante es el flujo y las verificaciones.
-
-10. Detener el laboratorio al terminar:
-
-```bat
-docker compose -f labs\compose.red.yaml down
-```
-
-Repetir requiere levantarlo otra vez e iniciar otra captura. Si no aparece ningún paquete, revisar interfaz loopback, filtro, puertos y que el laboratorio esté activo. Si no aparece HTTP como protocolo, revisar Decode As. No concluir que «todo está cifrado» porque se capturó la interfaz equivocada.
-
-Qué decir: «Esta captura es auténtica y usa solo datos ficticios. TCP transporta ambos flujos; TLS protege el contenido de uno. También validé el certificado, no solo observé caracteres ilegibles».
-
-### Demostración 4: entender VLAN y ACL antes de configurar Cisco
-
-Una **MAC** identifica una interfaz en el enlace local. Un switch aprende por qué puerto se alcanza cada MAC. Una **VLAN** divide un switch en grupos lógicos que no comparten el mismo dominio de broadcast. No significa «cifrado» ni «conexión privada a Internet». Un **router** comunica redes diferentes; una **puerta de enlace** es la dirección a la que un equipo manda tráfico destinado a otra red.
-
-Una **ACL** es una lista ordenada de reglas: permitir o denegar según origen/destino/protocolo/puerto. El orden y la interfaz donde se aplica son importantes. Una ACL stateless no recuerda conversaciones como un firewall stateful; no presentar ambos como idénticos. Un puerto access lleva la VLAN de un equipo final; un trunk transporta varias VLAN etiquetadas entre switch/router.
-
-En la maqueta hay docentes VLAN10, servidores VLAN20 y estudiantes VLAN30. El estudiante puede abrir HTTPS del servidor web, pero no administrar el switch ni llegar al servidor AAA. La profesora puede gestionar por el acceso previsto. Estas IP son del simulador: no se escriben en el adaptador de Windows.
-
-La receta completa, clic por clic y comando por comando, está en `labs/network/README.md`. Incluye tabla de dispositivos/puertos/IP, comparación plana, CLI `switch-core.cfg`, `router-r1.cfg`, comprobación `show vlan brief`, `show interfaces trunk`, `show access-lists` y pruebas permitidas/denegadas. Leer primero la tabla de cableado; pegar una configuración para Fa0/1 cuando conectaste Fa0/8 no hace funcionar la red.
-
-Packet Tracer9 está instalado y se logró abrir su interfaz. **No hay un `.pkt` validado ni resultados de ping/VLAN/ACL/WLAN/RADIUS ejecutados por esta entrega**. Debes completar la receta, guardar el archivo desde Packet Tracer, cerrarlo y reabrirlo antes de presentarlo como evidencia. El diagrama y los `.cfg` son material preparado, no un sustituto de ejecutar la simulación.
-
-Para repetir: guardar una copia antes de ACL/AAA, abrir esa copia y usar Realtime/Fast Forward. En Simulation seleccionar ARP/ICMP/TCP, avanzar un evento y revisar dónde se descarta la petición. Conservar fallos y causas en la ficha P5. No usar un archivo vacío con extensión `.pkt` ni un dibujo como prueba de conectividad.
-
-Qué decir después de ejecutarlo: «Las VLAN separan redes; el router y la ACL deciden cruces. Esta maqueta representa una política, no protege por sí misma los contenedores reales de Docker». Hasta ejecutarlo, decir que está diseñado y pendiente de validación.
-
-### Demostración 5: WLAN, WPA2 y RADIUS
-
-**WLAN** es una red local inalámbrica. **SSID** es el nombre visible de esa red. **WPA2 Personal** protege el enlace radio con una clave compartida y cifrado AES-CCMP; no es la clave AES del documento. Una contraseña compartida débil sigue siendo un problema. **WPA2-Enterprise** usa autenticación individual/802.1X con un servidor compatible, normalmente RADIUS; no afirmar que existe solo por seleccionar WPA2 Personal.
-
-**RADIUS** es un protocolo de AAA para consultar identidades de red. En C4 el switch consulta a Server-PT antes de permitir administración. No reemplaza la cuenta docente de SQLite ni el TOTP de la web. Cada sistema tiene sus identidades de ensayo y límites.
-
-El manual prepara dos prácticas separadas: WRT300N + Laptop/WPC300N con WPA2 Personal y RADIUS para administración del switch. En WLAN: Physical apagar laptop/cambiar módulo/encender; GUI Wireless configurar SSID/cifrado; PC Wireless conectar y probar clave buena/mala. En RADIUS: Server → Services → AAA, cliente switch/IP/secreto, usuario ficticio; switch con AAA/SSH; probar usuario válido e inválido. No reutilizar ninguna contraseña real.
-
-La capacidad efectiva depende del dispositivo/IOS de Packet Tracer. Si rechaza un comando o no tiene la opción AAA/HTTPS, registrar versión y limitación; no marcar «funciona» basándose en que lo dice una guía. Los detalles y recuperación de consola local están en el manual. No se necesita instalar un servidor RADIUS real en Windows para esta práctica.
-
-### Demostración 6: NAC sin bloquear el computador
-
-**NAC**, Network Access Control, combina identidad y estado de un dispositivo para decidir dónde puede conectarse. Por ejemplo: portátil docente conocido y actualizado puede administrar; equipo desconocido no entra; uno conocido sin actualización recibe una restricción. La **postura** es ese conjunto de condiciones de seguridad, no la hora del examen.
-
-```bat
-python -m labs.nac.modelo
-```
-
-El script crea objetos de ejemplo. No lee el antivirus real, no autentica tu Wi-Fi y no instala reglas. `Equipo` representa identidad/tipo/condiciones; `Zona` guarda reglas y padre; `admitir` devuelve permitir/rechazar/restringir. Una regla hija puede reemplazar la heredada. Lo definido solo en la hija no aparece en el padre. Si no hay permiso explícito, default deny.
-
-Resultado esperado y probado: docente conforme permitido en administración; estudiante conforme permitido para web; estudiante en administración rechazado; desconocido rechazado; conocido sin actualizar restringido. La demostración de ámbitos permite 3306 en una zona interna y lo rechaza fuera; ese puerto ilustra la clase, no significa que nuestro portal haya migrado de SQLite a MySQL.
-
-Para repetir, ejecutar de nuevo: todos los datos se recrean en memoria y no hay que restaurar adaptadores de Windows. Las pruebas automatizadas verifican estas decisiones. Qué decir: «Es un modelo de decisión académico, no un NAC empresarial que esté filtrando mi red».
-
-### Demostración 7: ARP y MITM con tablas ficticias
-
-**ARP** relaciona una IP local con una MAC para entregar tramas. No es una contraseña ni un cifrado. Una **tabla ARP** guarda asociaciones aprendidas. **MITM**, intermediario, describe una situación donde alguien se coloca en el camino de una comunicación. Una asociación ARP fraudulenta puede desviar tráfico hacia una MAC equivocada.
-
-```bat
-python -m labs.arp.modelo
-```
-
-El modelo muestra una puerta `192.0.2.1` asociada primero a la MAC del router y después a la de un intermediario ficticio. No ejecuta `arp -s`, no envía paquetes ni modifica el sistema. Los rangos/MAC son de ejemplo. Comparar ambas tablas y explicar hacia quién se entregarían las tramas.
-
-TLS correctamente validado dificulta leer/modificar contenido sin que falle el canal, pero no corrige ARP, no oculta todos los metadatos y no garantiza que el intermediario deje pasar los paquetes. Aceptar un certificado falso o entregar claves al adversario cambia el modelo de amenaza. No capturar credenciales para «demostrar» esto.
-
-Repetir el comando restaura las tablas iniciales en memoria. Qué decir: «Representé el engaño que muestra C9 p.8 y su consecuencia; no hice envenenamiento ARP real. La captura HTTP/HTTPS es otro ensayo controlado y auténtico».
-
-### Preguntas para la sustentación de redes
-
-| Pregunta | Respuesta correcta con nuestro proyecto |
-|---|---|
-| ¿Cambiar 8080 por 8443 crea HTTPS? | No; hay que configurar TLS/certificado en Nginx y validar la conexión. |
-| ¿Qué comprueba el certificado? | Cadena/firma, vigencia y nombre/IP del servidor; no que el estudiante esté asignado. |
-| ¿Confiaste en una clave privada? | No. Se importó solo el certificado público de la CA, con autorización y huella revisada. |
-| ¿Por qué no ignorar la advertencia? | Dejaría sin validar identidad del servidor; corregimos CA/SAN o fecha, no ocultamos el error. |
-| ¿TLS sustituye AES y SHA? | No: TLS protege el viaje; el sobre protege almacenamiento y referencia aprobada. |
-| ¿Se ve algo en una captura HTTPS? | IP, puertos, tamaños, tiempos y partes del handshake; el cuerpo va cifrado sin claves de sesión. |
-| ¿El saludo TCP cifra datos? | No; establece la conexión fiable. TLS negocia protección encima de TCP. |
-| ¿La VLAN protege Docker? | No; Packet Tracer es una maqueta separada. Docker usa sus redes internas reales. |
-| ¿Una VLAN impide cualquier acceso? | Separa broadcast; el enrutamiento/ACL y políticas determinan los cruces. |
-| ¿ACL equivale a firewall stateful? | No. La lista preparada filtra paquetes sin seguir sesiones. |
-| ¿WPA2 basta para abrir el examen? | No. Protege el enlace radio y la aplicación todavía exige identidad, asignación, hora e integridad. |
-| ¿RADIUS es el login TOTP del portal? | No; la práctica autentica administración de red con otro servicio de ensayo. |
-| ¿Tu NAC está bloqueando Windows? | No, es un modelo Python probado con datos de ejemplo y ámbitos. |
-| ¿Ejecutaste MITM o ARP spoofing? | No, mostré tablas simuladas; la captura real solo tiene la marca del laboratorio autorizado. |
-| ¿Guardaste un `.pkt` funcional? | No en esta entrega; están manual/configuraciones y falta ejecutar y guardar la maqueta. |
-| ¿Qué pasa si se pierde el certificado TLS? | Nginx no arranca correctamente; no activa autenticación HTTP. Recuperar respaldo/renovar explícitamente. |
-
-La evidencia de etapa4 diferencia exactamente implementación real, captura real, modelos ejecutados y simulación Cisco pendiente. La siguiente etapa5 tratará SQLi/controles DevSecOps/carga local cuando se solicite; no se anticipa aquí.
+El procedimiento vigente para abrir una captura de loopback filtrada al puerto 8443, generar tráfico real sin credenciales y revisar TLS está en [SEGURIDAD_RED.md](SEGURIDAD_RED.md). La captura real realizada corresponde al portal y usa TLS 1.3. No se deben capturar contraseñas, códigos TOTP, cookies, documentos privados ni claves de sesión. No hay laboratorios Cisco, NAC o ARP en el alcance actual.
 
 ## Etapa 3: explicación desde cero y demostración personal
 
@@ -744,21 +669,20 @@ En la práctica de Wireshark enviaremos una marca ficticia por HTTP de ensayo y 
 
 Las cabeceras son instrucciones de la respuesta para el navegador. `X-Frame-Options: SAMEORIGIN` limita que otro origen incruste el portal; `X-Content-Type-Options: nosniff` indica que se respete el tipo declarado. Ocultar el número de versión de Nginx reduce información expuesta, pero no corrige errores del programa. Descargar sin caché reduce la reutilización automática del navegador; no puede borrar una copia que el usuario ya guardó (F3 pp. 3–4, P6).
 
-## Qué será real, simulado o teórico
+## Qué está implementado y qué queda fuera del alcance actual
 
-| Modalidad futura | Ejemplos | Qué podrás afirmar |
+| Área | Estado | Qué puedes afirmar |
 |---|---|---|
-| Implementación real prevista | Cifrado, login/TOTP, descarga, auditoría, TLS, cuotas, corrección SQL en copia aislada y escaneos | Solo después de implementar, probar y guardar evidencia de tu ejecución |
-| Simulación | WiFi/VLAN/RADIUS en Packet Tracer, NAC en Python y tablas ARP | «Probé esta política en una maqueta o modelo», indicando sus límites |
-| Explicación teórica | VPN, TACACS+, cloud, WAF/IDS/IPS, botnets y ubicación de Metasploit | «Puedo explicar su función», sin decir que están desplegados |
+| Aplicación | Implementado | Cifrado, login/TOTP, descarga, auditoría, TLS y límites de intentos están documentados en sus evidencias. |
+| Controles de Etapa 5 | Implementado en laboratorio aislado | El ejemplo SQLi usa SQLite en memoria; Bandit y Trivy se ejecutan localmente. Consulta [SEGURIDAD_ETAPA5.md](SEGURIDAD_ETAPA5.md). |
+| Cisco, NAC y ARP | Fuera del alcance | No forman parte de la aplicación ni de las demostraciones actuales. |
+| VPN, TACACS+, cloud, WAF/IDS/IPS y Metasploit | Conceptos | Se pueden describir teóricamente, sin afirmar que están desplegados. |
 
-Una VLAN separa grupos de red; en la maqueta habrá docentes, servidores y alumnado. RADIUS centraliza la autenticación del switch simulado; no reemplaza las cuentas SQLite del portal. El modelo NAC comprueba reglas y estado de equipos representados como datos: no filtra el tráfico real de Windows.
-
-SQL injection ocurre cuando una entrada se convierte indebidamente en instrucciones de consulta. Solo la copia de laboratorio tendrá ese fallo intencional. Se repetirá el caso después de parametrizar la consulta: deben fallar el intento indebido y funcionar el acceso válido. Esa copia no comparte secretos ni almacenamiento del portal (F3 pp. 2, 7).
+SQL injection ocurre cuando una entrada se convierte indebidamente en instrucciones de consulta. El ejemplo de Etapa 5 usa exclusivamente SQLite en memoria y contrasta una consulta vulnerable con otra parametrizada. No está conectado a una ruta HTTP ni a la base de datos de la aplicación.
 
 Bandit busca patrones problemáticos en Python; Trivy revisa componentes e imágenes. Un CVE identifica una vulnerabilidad conocida. Compararemos una versión vulnerable y otra corregida usando la misma base de análisis. No pasar un control debe detener la promoción de la versión. El flujo será local para que la presentación no dependa de GitHub Actions (F3 pp. 4, 7).
 
-La prueba de disponibilidad genera hasta 100 solicitudes con concurrencia 5 dentro del laboratorio propio. Compararemos códigos, CPU y latencia antes/después de la cuota, mientras otro cliente autorizado intenta descargar. No es necesario hacer caer el equipo ni obtener un porcentaje de rechazo copiado del profesor. Dos tablas ARP mostrarán un posible desvío de tráfico, sin atacar la red real (F3 pp. 6–7).
+El control de intentos existente devuelve HTTP 429 al alcanzar su límite y registra el evento. No ejecutar pruebas de carga contra el portal como parte de esta etapa.
 
 ## Cómo preparar una buena evidencia
 

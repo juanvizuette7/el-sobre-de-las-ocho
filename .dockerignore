@@ -8,5 +8,7 @@
 !app/**
 !tests/
 !tests/**
+!scripts/
+!scripts/demo_sql_injection.py
 **/__pycache__/
 **/*.pyc
