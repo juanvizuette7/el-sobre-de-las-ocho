@@ -8,4 +8,4 @@ La Etapa 4 añade certificados locales con SAN, TLS 1.2/1.3, cookies Secure/Http
 
 En la Etapa 5, inicio de sesión y TOTP reutilizan el contador persistente de intentos; el bloqueo genera auditoría sin registrar secretos. Las consultas del portal usan parámetros. La demostración vulnerable es una CLI separada que crea SQLite en memoria con datos ficticios. Bandit y Trivy se ejecutan fuera del proceso productivo; la imagen Python usa versión y digest fijados sobre Debian 13.
 
-La Etapa 6 permanece fuera de alcance. Los PDF originales del profesor no se modifican.
+La Etapa 6 realizó la validación final y el cierre documental; no modificó la arquitectura ni añadió funciones. La matriz de diez clases y la evidencia de cierre registran el alcance y los límites verificados. Los PDF originales del profesor no se modifican.

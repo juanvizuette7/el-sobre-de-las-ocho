@@ -63,7 +63,7 @@ La primera ejecución descarga la base de vulnerabilidades. En esta revisión, T
 - «Bandit analiza Python y encuentra la muestra intencional. Trivy analiza software y configuración; sus alertas se revisan por paquete y contexto.»
 - «Una CVE identifica un problema publicado; encontrarla no demuestra por sí solo que la ruta vulnerable esté expuesta en esta aplicación.»
 
-Preguntas posibles: **¿Por qué no probarlo en el login real?** Porque no hace falta para explicar el riesgo y pondría en peligro cuentas reales; se usa SQLite aislado. **¿Por qué 429?** Es el código HTTP para solicitudes excesivas según una política de límite. **¿Bandit encontró un fallo del portal?** El B608 corresponde a la demostración deliberada, no al SQL de producción. **¿Trivy limpio significa seguro?** No; solo informa lo que su base y los escáneres pudieron identificar en esa fecha. **¿Qué falta?** La etapa 6 y la revisión de los hallazgos High pendientes.
+Preguntas posibles: **¿Por qué no probarlo en el login real?** Porque no hace falta para explicar el riesgo y pondría en peligro cuentas reales; se usa SQLite aislado. **¿Por qué 429?** Es el código HTTP para solicitudes excesivas según una política de límite. **¿Bandit encontró un fallo del portal?** El B608 corresponde a la demostración deliberada, no al SQL de producción. **¿Trivy limpio significa seguro?** No; solo informa lo que su base y los escáneres pudieron identificar en esa fecha. El cierre finalizó la validación; los 47 hallazgos High continúan documentados como riesgo residual.
 
 ## Etapa 4: HTTPS y tráfico del portal
 
@@ -553,7 +553,7 @@ Hay dos redes: `entrada`, a la que pertenece Nginx para publicar la dirección l
 | `scripts/verificar_etapa1.py` | Comprobar contenedores y HTTP reales desde Windows |
 | `scripts/verificar_interfaz.cjs` | Revisión opcional de navegador; herramientas fuera de la aplicación |
 
-Ahora existen `auth.py`, `config.py`, SQLite y los módulos de identidad indicados arriba. `crypto.py` para el examen sigue pendiente. No se usa `.env` para contraseñas; la inicialización interactiva guarda derivados y un secreto TOTP privado en el volumen.
+La implementación final contiene `auth.py`, `config.py`, SQLite, los módulos de identidad y el cifrado del examen en `crypto.py`. No se usa `.env` para contraseñas; la inicialización interactiva guarda derivados y un secreto TOTP privado en el volumen.
 
 ## Cómo demostrar esta primera etapa
 
@@ -637,7 +637,7 @@ La copia modificada es un detalle importante: la herramienta cambiará una letra
 
 Autenticación responde «¿quién eres?». Autorización responde «¿qué puedes hacer?». Auditoría responde «¿qué intentaste y cuál fue la decisión?». Son las tres partes de AAA estudiadas en clase 4.
 
-En el diseño final, el rol docente podrá publicar y el estudiante no; esa operación sigue pendiente. Eso es **RBAC**, permisos por rol. Además, el estudiante debe tener ese parcial asignado y cumplir la fecha/hora; es una decisión basada también en atributos, relacionada con **ABAC**. El servidor repite esas reglas aunque escribas directamente la URL. Aplicamos el principio de verificar cada solicitud; no significa haber desplegado una infraestructura empresarial completa de Zero Trust.
+En la aplicación, el rol docente puede publicar y el estudiante no. Eso es **RBAC**, permisos por rol. Además, el estudiante debe tener ese parcial asignado y cumplir la fecha/hora; es una decisión basada también en atributos, relacionada con **ABAC**. El servidor repite esas reglas aunque escribas directamente la URL. Aplicamos el principio de verificar cada solicitud; no significa haber desplegado una infraestructura empresarial completa de Zero Trust.
 
 La contraseña no se guarda legible. Una función de derivación la transforma con una **sal** aleatoria por cuenta. La sal no es otra contraseña: permite que dos cuentas con la misma contraseña no tengan el mismo valor almacenado. Para contraseñas no basta aplicar una sola vez un hash rápido como SHA-256.
 
@@ -688,10 +688,54 @@ El control de intentos existente devuelve HTTP 429 al alcanzar su límite y regi
 
 Una captura aislada no demuestra por sí sola la prueba. Cada ficha deberá decir clase, documento/página, entorno, modalidad, versión, condiciones iniciales, pasos, resultado esperado y resultado observado. Adjunta la respuesta o registro relevante y explica por qué sostiene tu conclusión. Conserva también resultados fallidos para documentar la corrección.
 
-Ejemplo **sin ejecutar**: clase 4, estudiante asignado, original intacto, reloj didáctico 07:59:59. Esperado: 403 y motivo fuera de horario. El campo observado se deja pendiente hasta hacer la prueba; no se rellena con el resultado esperado. Nunca captures contraseñas, OTP, cookies de sesión o claves. El examen siempre será ficticio.
+Ejemplo verificado: estudiante asignado, original intacto y reloj didáctico 07:59:59 producen 403; a las 08:00:00 se obtiene 200 cuando también se cumplen las demás reglas. Nunca captures contraseñas, OTP, cookies de sesión o claves. El examen siempre será ficticio.
 
 ## Cómo usar esta documentación
 
 Lee el [resumen](RESUMEN_PROYECTO.md) para conocer requisitos y P1–P10; la [arquitectura](ARQUITECTURA.md) para ver responsabilidades y archivos propuestos; la [matriz](MATRIZ_CLASES.md) para preparar la explicación de cada clase; y el [plan](PLAN_IMPLEMENTACION.md) para construir en seis etapas.
 
-La [GUIA_WINDOWS.md](GUIA_WINDOWS.md) contiene los comandos operativos; [IDENTIDAD_ACCESO.md](IDENTIDAD_ACCESO.md) detalla alta y sesiones. Identificar usuarios ya funciona en 2A. La [ficha 2A](evidencias/etapa-02a.md) registra sus pruebas; restaurar un examen y cumplir íntegramente P1–P10 siguen pendientes. No se avanza a etapa 3 sin autorización.
+La [GUIA_WINDOWS.md](GUIA_WINDOWS.md) contiene los comandos operativos; [IDENTIDAD_ACCESO.md](IDENTIDAD_ACCESO.md) detalla alta y sesiones. Identificar usuarios ya funciona en 2A. La [ficha 2A](evidencias/etapa-02a.md) registra sus pruebas; el estado vigente está en el resumen final, la matriz y las evidencias de cierre. Esta guía conserva algunas secciones históricas de aprendizaje.
+
+## Diez clases explicadas desde cero
+
+Esta sección organiza los conceptos para estudiar y responder preguntas. La [matriz](MATRIZ_CLASES.md) indica qué se construyó realmente y qué quedó fuera.
+
+### 1. Criptografía
+
+El cifrado simétrico usa una clave para cifrar y descifrar. AES-GCM cifra el examen y detecta cambios. RSA es asimétrico: una clave pública y una privada están relacionadas; aquí RSA-OAEP protege la pequeña clave AES, no el archivo entero. SHA-256 produce una huella para comparar bytes, pero no cifra ni puede descifrarse. **Pregunta:** ¿por qué combinar AES y RSA? AES procesa archivos eficientemente; RSA protege la clave AES. ¿Qué hace SHA? Detecta diferencias frente a una referencia protegida.
+
+### 2. Comunicaciones
+
+IP identifica y enruta paquetes; TCP establece un transporte ordenado; HTTP define solicitudes y respuestas; TLS cifra el tránsito y autentica el servidor. El puerto 8443 identifica la entrada HTTPS local y `127.0.0.1` es el propio computador. Nginx termina TLS y reenvía a FastAPI por la red privada Docker. Wireshark observa paquetes y metadatos; el contenido HTTPS va cifrado. **Pregunta:** ¿TCP cifra? No, TLS aporta ese cifrado.
+
+### 3. Redes inalámbricas
+
+Una LAN conecta equipos localmente; VLAN separa segmentos de capa 2; WLAN es una LAN inalámbrica. WEP es obsoleto; WPA2/WPA3 protegen Wi-Fi. El modo personal usa una clave compartida; el empresarial suele usar 802.1X y RADIUS. La red privada Compose no es WLAN ni VLAN. Packet Tracer no forma parte de esta implementación. **Pregunta:** ¿el puerto Docker prueba una VLAN? No, solo demuestra aislamiento entre servicios Docker.
+
+### 4. Identidad y acceso
+
+IAM administra identidades. AAA significa autenticación (quién eres), autorización (qué puedes hacer) y auditoría (qué decisión ocurrió). MFA combina factores distintos; el docente usa contraseña y TOTP. RBAC concede permisos por rol; ABAC usa atributos del usuario, recurso y contexto. Aquí el estudiante necesita rol correcto, asignación y horario. Argon2id deriva contraseñas con sal. RADIUS/TACACS+ y Zero Trust empresarial no están desplegados. **Pregunta:** ¿una URL directa evade permisos? No; cada ruta vuelve a autorizar en backend.
+
+### 5. Bastionado
+
+Bastionar reduce superficie y errores de configuración. Nginx oculta versión, fuerza HTTPS y añade cabeceras. `nosniff` reduce la interpretación incorrecta de tipos; `SAMEORIGIN` limita marcos de otro origen. Las cabeceras no reemplazan parches. **Pregunta:** ¿una cabecera vuelve seguro todo el sitio? No, cubre un riesgo concreto.
+
+### 6. NAC y cortafuegos
+
+NAC evalúa el dispositivo antes de permitirle conectarse. Un firewall filtra tráfico; el firewall con estado relaciona paquetes con conexiones. Segmentación y DMZ limitan el alcance de una intrusión. Compose ofrece aislamiento básico de servicios y puertos, pero no hay motor NAC, DMZ ni firewall empresarial. **Pregunta:** ¿qué verifica el control Docker? Exposición de puertos y restricciones del contenedor, no la postura de un equipo cliente.
+
+### 7. DevSecOps
+
+DevSecOps incorpora seguridad en el ciclo de desarrollo. pytest ejecuta pruebas; Bandit busca patrones de Python; Trivy analiza imágenes y dependencias. CVE es un identificador público de vulnerabilidad. Un resultado depende de versión, configuración y uso; no debe ocultarse ni equivale automáticamente a explotación. La imagen mantiene 47 High y cero Critical según el informe registrado. No hay cloud ni GitHub Actions. B608 es intencional en la muestra SQLi. **Pregunta:** ¿cero Critical significa seguro? No: existen 47 High documentados y todo escáner tiene límites.
+
+### 8. Pruebas y SQL Injection
+
+Una prueba de penetración valida fallos dentro de un alcance autorizado. Nmap descubre puertos y NSE añade comprobaciones; no se usa contra producción aquí. SQL Injection ocurre cuando datos alteran la estructura SQL. Parámetros separan consulta y valores. El portal usa parámetros; el ejemplo vulnerable usa SQLite en memoria y filas ficticias. Una prueba aprobada no prueba la ausencia de todos los defectos. **Pregunta:** ¿por qué no probar en el login real? La base aislada enseña el riesgo sin exponer cuentas.
+
+### 9. Disponibilidad e intercepción
+
+DoS intenta agotar recursos; DDoS lo distribuye entre orígenes; una botnet es una red de equipos comprometidos. MITM intercepta comunicación. ARP spoofing falsifica asociaciones IP-dirección física en una red local. TLS protege el tránsito, pero no evita saturación. El proyecto no genera DDoS, no envenena ARP ni simula MITM; Wireshark captura TLS real. **Pregunta:** ¿ver TLS prueba defensa DDoS? No; prueba una conexión cifrada observada.
+
+### 10. Defensa en capas
+
+Prevención reduce la posibilidad de fallo; detección registra señales; corrección restaura y parchea. El límite de acceso responde 429 al superar la política y audita sin registrar contraseña ni OTP. Docker reduce privilegios; se aplicó un parche puntual a zlib y las demás alertas siguen documentadas. No se hizo una prueba de carga masiva. **Pregunta:** ¿qué verifica la prueba 429? Bloqueo, auditoría y recuperación de la autenticación usando datos temporales.

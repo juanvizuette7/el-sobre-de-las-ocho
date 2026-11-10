@@ -1,6 +1,6 @@
 # El sobre de las ocho: resumen del proyecto
 
-**Estado vigente de etapas 4–5:** portal en `https://127.0.0.1:8443/acceso`; TLS, captura del portal real, demostración SQL aislada, rate limit y análisis de seguridad verificados. **129 pruebas aprobadas**, 22 comprobaciones TLS/red y 27 de infraestructura. [Seguridad de aplicación](SEGURIDAD_ETAPA5.md), [matriz](MATRIZ_CLASES.md), [evidencia 5](evidencias/etapa-05.md). Cisco Packet Tracer y laboratorios NAC/ARP fueron retirados. La etapa 6 no se inicia. Las notas siguientes conservan el análisis inicial como referencia documental.
+**Estado final verificado:** portal en `https://127.0.0.1:8443/acceso`; TLS y captura real, SQL aislada, rate limit y análisis de seguridad documentados. **129 pruebas aprobadas**, 22 comprobaciones TLS/red y 27 de infraestructura. Trivy mantiene 47 hallazgos High, sin Critical; consulte [seguridad de aplicación](SEGURIDAD_ETAPA5.md), [matriz de diez clases](MATRIZ_CLASES.md) y [evidencia de cierre](evidencias/etapa-06.md). Cisco Packet Tracer y laboratorios NAC/ARP están fuera del alcance. Las notas siguientes conservan el análisis inicial como referencia histórica.
 
 
 **Etapa 3 implementada y verificada.** Publicación docente de TXT, AES-256-GCM/RSA-OAEP-SHA256, SHA-256 protegido y descarga con RBAC/ABAC existente. Original idéntico, dos manipulaciones reales bloqueadas con 409 y restauración funcional. 120 pruebas y recorrido Nginx/navegador. [Especificación](CRIPTOGRAFIA_SOBRE.md), [evidencia](evidencias/etapa-03.md). La evidencia de etapa 4 documenta el TLS vigente; el análisis inicial posterior conserva los criterios de origen, no el estado actual.
@@ -76,10 +76,10 @@ Todos los resultados siguientes son **esperados, no observados**. Fuente: F3 pp.
 
 ## Estado, incertidumbres y lectura posterior
 
-P1 tiene verificación parcial de identidad: credenciales, TOTP y denegación de rutas privadas por rol; su publicación/descarga siguen ausentes. P2 acredita parcialmente el límite horario mediante disponibilidad JSON, sin entregar el original; P3–P10 siguen pendientes. La comunicación Nginx–FastAPI y portada se conservan verificadas. Certificados, herramientas de laboratorios y CVE siguen pendientes. El flujo local DevSecOps y el límite de carga de F3 prevalecen sobre ejemplos docentes más amplios.
+El texto anterior de esta sección registra el análisis inicial y no describe el cierre. El estado final incluye publicación y descarga cifrada, horario, TLS y controles de etapa 5. Consulte [evidencia de Etapa 6](evidencias/etapa-06.md) y [matriz de las diez clases](MATRIZ_CLASES.md); Trivy mantiene 47 hallazgos High.
 
 La Fase 3 estima 30–40 h, aunque sus seis intervalos suman 30–40 h para construcción y ensayo; el informe extenso y diapositivas corresponden a la **fase académica 5**, diferente de la etapa de construcción 5 (F3 p. 5).
 
 Los PDF locales ya están rastreados por Git. `.gitignore` no los retira del índice ni del historial; esta tarea no cambia el índice, borra originales ni publica archivos. Antes de compartir el repositorio será necesario resolver la autorización de distribución y la permanencia de esos materiales.
 
-Referencias: [ARQUITECTURA.md](ARQUITECTURA.md), [PLAN_IMPLEMENTACION.md](PLAN_IMPLEMENTACION.md) y guía privada de aprendizaje. FastAPI y HTTP local en 8080 se conservan; las cookies se preparan para Secure en HTTPS futuro. La interfaz ofrece acceso y paneles privados, con evaluación y laboratorio todavía pendientes. La etapa 2B cuenta con [evidencia](evidencias/etapa-02b.md). La etapa 3 requiere autorización.
+Referencias vigentes: [arquitectura](ARQUITECTURA.md), [plan](PLAN_IMPLEMENTACION.md), [guía personal](GUIA_ESTUDIANTE.md), [guía rápida](GUIA_SUSTENTACION_RAPIDA.md) y [evidencias de cierre](evidencias/etapa-06.md). Las descripciones de las etapas iniciales conservan contexto histórico.

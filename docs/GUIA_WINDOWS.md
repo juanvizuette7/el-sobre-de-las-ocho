@@ -1,6 +1,6 @@
-# Guía de ejecución en Windows — etapas 1, 2A y 2B
+# Guía operativa en Windows — estado final
 
-Entrada vigente de etapa 4: **https://127.0.0.1:8443/acceso**. Desde CMD usar `scripts\preparar_https.cmd` y seguir [SEGURIDAD_RED.md](SEGURIDAD_RED.md) para comprobar HTTPS y usar Wireshark con el puerto 8443. El script no instala confianza. Las instrucciones de etapas anteriores que siguen conservan su contexto histórico. No borrar identidad ni regenerar claves del examen para activar HTTPS.
+Entrada del portal: **https://127.0.0.1:8443/acceso**. Para iniciar, comprobar y sustentar el estado final consulte [guía rápida de sustentación](GUIA_SUSTENTACION_RAPIDA.md) y [evidencia de Etapa 6](evidencias/etapa-06.md). Los procedimientos de etapas anteriores que siguen conservan su contexto histórico. No borrar identidad ni regenerar claves del examen.
 
 
 Los comandos de uso y pruebas están completos en [README.md](../README.md). Están escritos para **CMD**, sin variables o sintaxis exclusivas de PowerShell. Abre Docker Desktop con motor Linux antes de ejecutarlos. Internet es necesario para la primera construcción; con imágenes construidas puedes volver a iniciar sin reinstalar.

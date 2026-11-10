@@ -6,7 +6,7 @@
     <p class="eyebrow">ACCESO A LA PLATAFORMA</p>
     <h1 id="access-title">{{ 'Un paso más para' if mfa else 'Tu espacio para' }}<br><em>{{ 'confirmar tu identidad.' if mfa else 'cada evaluación.' }}</em></h1>
     <p>{{ 'Introduce el código de tu autenticador para acceder al portal docente.' if mfa else 'Accede con tu cuenta para consultar tu portal docente o estudiante.' }}</p>
-    <div class="identity-notice">{{ icon('info') }}<p>Uso local con cuentas ficticias. La conexión HTTP actual no cifra las credenciales en tránsito.</p></div>
+    <div class="identity-notice">{{ icon('info') }}<p>Uso local con cuentas ficticias. La conexión del navegador está protegida mediante HTTPS.</p></div>
   </section>
   <section class="identity-card" aria-labelledby="form-title">
     <span class="area-icon">{{ icon('docente' if mfa else 'sobre') }}</span>

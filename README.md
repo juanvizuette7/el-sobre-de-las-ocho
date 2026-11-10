@@ -1,8 +1,8 @@
 # El sobre de las ocho
 
-**Entrada vigente: https://127.0.0.1:8443/acceso.** Etapa 4 incorpora TLS 1.2/1.3, CA local, redirección HTTP y captura Wireshark del tráfico real del portal. La etapa 5 añade demostración SQL aislada, verificación del límite de acceso y análisis reproducible. [Seguridad de red](docs/SEGURIDAD_RED.md), [seguridad de aplicación](docs/SEGURIDAD_ETAPA5.md), [evidencia 5](docs/evidencias/etapa-05.md).
+**Estado final verificado:** portal en https://127.0.0.1:8443/acceso. La regresión incluye HTTPS/TLS, identidad, MFA, autorización, reloj, entrega cifrada, integridad, auditoría, SQL aislada y límites. **129 pruebas aprobadas**; Trivy mantiene **47 hallazgos High** en la imagen Debian. Consulte [evidencia de cierre](docs/evidencias/etapa-06.md), [guía rápida de sustentación](docs/GUIA_SUSTENTACION_RAPIDA.md), [seguridad de red](docs/SEGURIDAD_RED.md) y [seguridad de aplicación](docs/SEGURIDAD_ETAPA5.md).
 
-Portal académico de Sistemas de Comunicaciones y Seguridad Informática. **Etapas 1, 2A, 2B y 3:** identidad/TOTP/RBAC, asignación/apertura y documentos protegidos, en FastAPI detrás de Nginx. Publicación de TXT UTF-8 con AES-256-GCM, RSA-OAEP y SHA-256. SQLite y sobres permanecen en el volumen privado existente. Etapa 4 añade HTTPS y captura del tráfico real del portal.
+Portal académico de Sistemas de Comunicaciones y Seguridad Informática. Las funciones implementadas incluyen identidad/TOTP/RBAC, asignación/apertura y documentos protegidos, en FastAPI detrás de Nginx. Publicación de TXT UTF-8 con AES-256-GCM, RSA-OAEP y SHA-256. SQLite y sobres permanecen en el volumen privado existente. HTTPS, auditoría, controles de aplicación y sus límites se documentan en las evidencias de cada etapa.
 
 ## Ejecutar en CMD de Windows
 
@@ -105,7 +105,7 @@ docker build --target test -t el-sobre-de-las-ocho-tests:etapa2b .
 docker run --rm --network none --read-only --tmpfs /tmp el-sobre-de-las-ocho-tests:etapa2b
 ```
 
-Se conservan los casos de portada/infraestructura, identidad, MFA, CSRF, RBAC, vigencia, revocación y ausencia de secretos. La suite usa bases temporales sin acceder al volumen real. Las fichas [2A](docs/evidencias/etapa-02a.md), [2B](docs/evidencias/etapa-02b.md) y [3](docs/evidencias/etapa-03.md) distinguen la cobertura de cada entrega: P1–P3 se verifican en etapa 3; P4–P10 siguen pendientes. Para ejecutar toda la suite vigente, construir el destino test y usar la etiqueta `etapa3` de la guía criptográfica; las etiquetas históricas siguientes no identifican ramas de código.
+La suite vigente conserva los casos de portada/infraestructura, identidad, MFA, CSRF, RBAC, vigencia, revocación y ausencia de secretos; sus resultados finales están en [evidencia 6](docs/evidencias/etapa-06.md). Las pruebas usan bases temporales y no acceden al volumen real. La [matriz de clases](docs/MATRIZ_CLASES.md) indica qué conceptos tienen prueba y cuáles están fuera del alcance.
 
 Revisión de navegador opcional, solo para desarrollo: requiere Node/npm y Google Chrome instalado; no se necesita para usar el portal. Las herramientas quedan en `.qa/`, ignorada por Git y excluida del contexto Docker:
 
@@ -144,8 +144,8 @@ No se necesita `.env` con contraseñas. `app/config.py` define parámetros no se
 
 ## Documentación
 
-La [guía Windows](docs/GUIA_WINDOWS.md) contiene los procedimientos operativos. La [matriz de clases](docs/MATRIZ_CLASES.md) distingue cobertura parcial de prácticas pendientes. La arquitectura y las seis etapas permanecen en [ARQUITECTURA.md](docs/ARQUITECTURA.md) y [PLAN_IMPLEMENTACION.md](docs/PLAN_IMPLEMENTACION.md); el seguimiento de construcción no se muestra en el producto. Las explicaciones didácticas están separadas en [GUIA_ESTUDIANTE.md](docs/GUIA_ESTUDIANTE.md).
+La [guía Windows](docs/GUIA_WINDOWS.md) contiene los procedimientos operativos. La [matriz de diez clases](docs/MATRIZ_CLASES.md) distingue implementación y límites. La [guía rápida de sustentación](docs/GUIA_SUSTENTACION_RAPIDA.md) sirve para la demostración; la [guía personal de aprendizaje](docs/GUIA_ESTUDIANTE.md) explica los conceptos aparte de la interfaz.
 
 Referencias técnicas consultadas: [plantillas en FastAPI](https://fastapi.tiangolo.com/advanced/templates/), [TestClient y pytest](https://fastapi.tiangolo.com/tutorial/testing/) y [salud y orden de arranque en Compose](https://docs.docker.com/compose/how-tos/startup-order/). Las fuentes académicas y páginas siguen siendo los PDF locales indicados en la matriz.
 
-2A implementa identidad/RBAC y 2B añade ABAC de disponibilidad, asignaciones y reloj independiente. La etapa 3 añade cifrado, integridad y entrega real. La etapa 4 incorpora HTTPS/TLS y captura del tráfico real del portal. La etapa 5 no se inicia automáticamente.
+2A implementa identidad/RBAC y 2B añade ABAC de disponibilidad, asignaciones y reloj independiente. La etapa 3 añade cifrado, integridad y entrega real. La etapa 4 incorpora HTTPS/TLS y captura del tráfico real del portal. La etapa 5 añade controles aislados y revisión de vulnerabilidades. La etapa 6 cerró la validación; no implica nuevas funcionalidades.
