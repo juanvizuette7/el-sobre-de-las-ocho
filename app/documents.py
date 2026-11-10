@@ -40,7 +40,7 @@ def resolver_documento(config, token, identificador, entregar=False):
             decision["hora_referencia"] = referencia
         documento = db.execute("SELECT * FROM documentos WHERE evaluacion_id=?", (identificador,)).fetchone() if decision["evaluacion"] else None
         decision["documento"] = metadatos(documento)
-        decision["estado_documento"] = "Documento protegido disponible." if documento else "Documento pendiente de publicación."
+        decision["estado_documento"] = "Documento protegido disponible." if documento else "Aún no hay un documento publicado."
         if decision["autorizado"] and documento:
             try:
                 contenido = recuperar(config, db, documento)

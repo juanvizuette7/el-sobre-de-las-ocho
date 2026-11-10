@@ -41,7 +41,7 @@
       {% else %}
       <section class="document-management" aria-labelledby="document-title-{{ loop.index }}">
         <h4 id="document-title-{{ loop.index }}">Documento de evaluación</h4>
-        {% if item.documento %}<p><strong>{{ item.documento.nombre }}</strong></p><p class="field-help">Almacenamiento protegido · {{ item.documento.tamano }} bytes<br>Publicación: <time datetime="{{ item.documento.publicado }}">{{ item.documento.publicacion.fecha }} · {{ item.documento.publicacion.hora }}</time></p>{% else %}<p>Documento pendiente de publicación.</p>{% endif %}
+        {% if item.documento %}<p><strong>{{ item.documento.nombre }}</strong></p><p class="field-help">Almacenamiento protegido · {{ item.documento.tamano }} bytes<br>Publicación: <time datetime="{{ item.documento.publicado }}">{{ item.documento.publicacion.fecha }} · {{ item.documento.publicacion.hora }}</time></p>{% else %}<p>Aún no hay un documento publicado.</p>{% endif %}
         <form action="/evaluaciones/{{ evaluacion.id }}/documento" method="post" enctype="multipart/form-data" class="document-upload">
           <input type="hidden" name="csrf" value="{{ sesion.csrf }}">
           <label for="document-{{ loop.index }}">{{ 'Reemplazar documento' if item.documento else 'Seleccionar documento' }} · {{ evaluacion.titulo }}</label>

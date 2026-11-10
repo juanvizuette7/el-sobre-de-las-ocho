@@ -56,7 +56,12 @@ def test_portada_y_recursos_funcionan_sin_servicios_externos(cliente):
     assert "Documentos protegidos. Entrega sujeta a autorización" in respuesta.text
     assert all(nombre in respuesta.text for nombre in ["Portal docente", "Portal estudiante", "Laboratorio de seguridad"])
     assert 'id="recorrido"' not in respuesta.text
-    assert "Acceso administrativo pendiente de habilitación" in respuesta.text
+    assert "pendiente" not in respuesta.text.lower()
+    assert "datos ficticios" not in respuesta.text.lower()
+    assert "Datos de demostración" in respuesta.text
+    assert "Acceso administrativo pendiente de habilitación" not in respuesta.text
+    assert "Uso restringido" in respuesta.text
+    assert "Las operaciones se ejecutan localmente con acceso administrativo." in respuesta.text
     pagina = RecursosHTML()
     pagina.feed(respuesta.text)
     assert pagina.formularios == 0
@@ -73,6 +78,9 @@ def test_portada_y_recursos_funcionan_sin_servicios_externos(cliente):
         # Las URL generadas pueden ser absolutas, pero deben pertenecer al portal.
         assert recurso.startswith(("http://127.0.0.1:8080/static/", "/static/"))
         assert cliente.get(recurso).status_code == 200
+    acceso = cliente.get("/acceso")
+    assert "Cuentas y datos de prueba" in acceso.text
+    assert "pendiente" not in acceso.text.lower()
 
 
 @pytest.mark.parametrize("ruta,codigo", [("/.env",404), ("/docs/RESUMEN_PROYECTO.md",404), ("/static/../main.py",404), ("/docente",401), ("/descargar",404), ("/docs",404), ("/openapi.json",404)])

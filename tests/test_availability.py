@@ -247,6 +247,8 @@ def test_panel_asignado_muestra_estado_real_y_no_documento(ensayo):
     cerrado = cliente.get("/estudiante")
     assert "Evaluación de laboratorio" in cerrado.text and "Examen bloqueado" in cerrado.text
     assert "Falta 1 segundo para la apertura" in cerrado.text
+    assert "Aún no hay un documento publicado." in cerrado.text
+    assert "Documento pendiente de publicación" not in cerrado.text
     assert "America/Bogota" in cerrado.text
     fijar(config, "08:00:00")
     abierto = cliente.get("/estudiante")
