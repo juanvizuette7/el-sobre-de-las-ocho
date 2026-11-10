@@ -15,6 +15,7 @@ from app.config import Configuracion, configuracion_entorno
 from app.db import inicializar_base
 from app.security import derivar_clave
 from app.evaluations import router as router_evaluaciones
+from app.documents import router as router_documentos
 
 DIRECTORIO_APP = Path(__file__).resolve().parent
 
@@ -37,6 +38,7 @@ def crear_aplicacion(config: Configuracion | None = None) -> FastAPI:
     aplicacion.mount("/static", StaticFiles(directory=DIRECTORIO_APP / "static"), name="static")
     aplicacion.include_router(router)
     aplicacion.include_router(router_evaluaciones)
+    aplicacion.include_router(router_documentos)
 
     @aplicacion.middleware("http")
     async def proteger_respuestas(request: Request, siguiente):

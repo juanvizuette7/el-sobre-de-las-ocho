@@ -80,3 +80,5 @@ typing-inspection==0.4.5
     #   pydantic
 uvicorn==0.54.0
     # via -r requirements.in
+# Criptografía de ejecución, también requerida por el destino de pruebas.
+cryptography==50.0.2

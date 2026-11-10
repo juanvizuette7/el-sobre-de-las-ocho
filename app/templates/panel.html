@@ -7,6 +7,7 @@
 </section>
 <div class="private-summary"><span class="area-icon">{{ icon('docente' if docente else 'estudiante') }}</span><div><h2>Acceso verificado</h2><p>{{ 'Contraseña y segundo factor validados.' if docente else 'Identidad y rol de estudiante validados.' }} La sesión caduca a los 30 minutos.</p></div></div>
 <section aria-labelledby="evaluations-title" class="evaluations-section">
+  {% if docente and request.query_params.get('publicado') == '1' %}<p class="publication-notice" role="status">Documento almacenado y protegido correctamente.</p>{% endif %}
   <p class="eyebrow">{{ 'PROGRAMACIÓN' if docente else 'EVALUACIONES ASIGNADAS' }}</p>
   <h2 id="evaluations-title">{{ 'Evaluaciones registradas' if docente else 'Tus evaluaciones' }}</h2>
   {% for item in evaluaciones %}
@@ -36,12 +37,32 @@
       {% if not docente %}
       <div class="availability-result" id="decision-{{ loop.index }}" role="status" aria-live="polite" data-state="{{ vista.estado }}">{{ icon('bloqueado', 'state-lock') }}{{ icon('autorizado', 'state-ok') }}<div><strong class="access-title" data-availability-title>{{ vista.titulo }}</strong><span class="access-reason" data-availability-message>{{ vista.detalle }}</span></div></div>
       {% if evaluacion %}<button type="button" class="health-button" data-availability="/evaluaciones/{{ evaluacion.id }}/disponibilidad" aria-controls="decision-{{ loop.index }} query-{{ loop.index }}">Comprobar acceso {{ icon('pulso') }}</button><p class="query-feedback" id="query-{{ loop.index }}" data-query-feedback role="status" aria-live="polite" aria-atomic="true"></p>{% endif %}
-      {% else %}<p>La disponibilidad se verifica para cada estudiante al consultar la evaluación.</p>{% endif %}
-      <p class="field-help">Descarga de documentos pendiente de habilitación.</p>
+      <div class="document-status" data-document-status><p data-document-message>{{ item.estado_documento }}</p><a class="health-button download-link" href="/evaluaciones/{{ evaluacion.id }}/documento" data-download{% if not item.descarga_habilitada %} hidden{% endif %}>Descargar documento {{ icon('flecha') }}</a></div>
+      {% else %}
+      <section class="document-management" aria-labelledby="document-title-{{ loop.index }}">
+        <h4 id="document-title-{{ loop.index }}">Documento de evaluación</h4>
+        {% if item.documento %}<p><strong>{{ item.documento.nombre }}</strong></p><p class="field-help">Almacenamiento protegido · {{ item.documento.tamano }} bytes<br>Publicación: <time datetime="{{ item.documento.publicado }}">{{ item.documento.publicacion.fecha }} · {{ item.documento.publicacion.hora }}</time></p>{% else %}<p>Documento pendiente de publicación.</p>{% endif %}
+        <form action="/evaluaciones/{{ evaluacion.id }}/documento" method="post" enctype="multipart/form-data" class="document-upload">
+          <input type="hidden" name="csrf" value="{{ sesion.csrf }}">
+          <label for="document-{{ loop.index }}">{{ 'Reemplazar documento' if item.documento else 'Seleccionar documento' }} · {{ evaluacion.titulo }}</label>
+          <input id="document-{{ loop.index }}" type="file" name="documento" accept=".txt,text/plain" required aria-describedby="document-help-{{ loop.index }}">
+          <p id="document-help-{{ loop.index }}" class="field-help">Texto UTF-8 (.txt), máximo 512 KiB. Una publicación sustituye la versión anterior.</p>
+          <button class="health-button" type="submit">Publicar documento protegido {{ icon('sobre') }}</button>
+        </form>
+      </section>
+      {% endif %}
     </article>
   {% else %}
-    <div class="identity-card panel-empty"><h3>{{ 'No hay evaluaciones registradas.' if docente else 'Acceso restringido. No tienes evaluaciones asignadas.' }}</h3>{% if not docente %}<p>Cumplir el horario de apertura no autoriza el acceso sin asignación.</p>{% endif %}<p>La descarga de documentos está pendiente de habilitación.</p></div>
+    <div class="identity-card panel-empty"><h3>{{ 'No hay evaluaciones registradas.' if docente else 'Acceso restringido. No tienes evaluaciones asignadas.' }}</h3>{% if not docente %}<p>Cumplir el horario de apertura no autoriza el acceso sin asignación.</p>{% endif %}</div>
   {% endfor %}
 </section>
-{% if docente %}<p class="field-help">La carga de documentos y la edición de evaluaciones no están habilitadas.</p>{% endif %}
+{% if docente %}
+<section class="document-management" aria-labelledby="audit-title">
+  <h2 id="audit-title">Actividad de documentos</h2>
+  <p class="field-help">Últimos 12 registros · Hora real del evento en America/Bogota. La referencia del laboratorio se indica por separado.</p>
+  {% for evento in bitacora %}
+  <article class="audit-entry"><p><strong>{{ evento.accion.replace('_', ' ').capitalize() }}</strong> · {{ evento.resultado }} · {{ evento.evaluacion_id }}</p><p class="field-help">Hora real: {{ evento.hora_real }}<br>Referencia del laboratorio: {{ evento.instante_didactico or 'No disponible' }}<br>Motivo: {{ evento.motivo.replace('_', ' ') }}</p></article>
+  {% else %}<p>No hay actividad de documentos registrada.</p>{% endfor %}
+</section>
+{% endif %}
 {% endblock %}

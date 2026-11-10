@@ -1,5 +1,7 @@
 # El sobre de las ocho: resumen del proyecto
 
+**Estado vigente, 10 de noviembre de 2026: etapa 3 implementada y verificada.** Publicación docente de TXT, AES-256-GCM/RSA-OAEP-SHA256, SHA-256 protegido y descarga con RBAC/ABAC existente. Original idéntico a las ocho, dos manipulaciones reales bloqueadas con 409 y restauración funcional. 120 pruebas y recorrido real Nginx/navegador. [Especificación](CRIPTOGRAFIA_SOBRE.md), [evidencia](evidencias/etapa-03.md). P1–P3 verificados en aplicación HTTP local; etapas 4–6/P4–P10 pendientes. El análisis inicial siguiente conserva criterios originales; sus notas de estado 2B son históricas.
+
 Análisis inicial: 9 de noviembre de 2026. **Estado actualizado: etapas 1, 2A y 2B implementadas; examen protegido y laboratorios pendientes.** La plataforma incluye SQLite, Argon2id, sesiones privadas, TOTP docente, RBAC y auditoría de identidad. Asignación y apertura ya se verifican sobre metadatos; publicación, cifrado, integridad y descarga reales permanecen sin implementar. Detalles en [AUTORIZACION_HORARIO.md](AUTORIZACION_HORARIO.md). Referencias: [README](../README.md), [IDENTIDAD_ACCESO](IDENTIDAD_ACCESO.md) y [evidencia 2A](evidencias/etapa-02a.md).
 
 ## Especificación y fuentes

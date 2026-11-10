@@ -7,6 +7,8 @@ document.querySelectorAll("[data-availability]").forEach((boton) => {
     const tarjeta = boton.closest(".evaluation-card");
     const resultado = tarjeta.querySelector(".availability-result");
     const confirmacion = tarjeta.querySelector("[data-query-feedback]");
+    const descarga = tarjeta.querySelector("[data-download]");
+    const documento = tarjeta.querySelector("[data-document-message]");
     const controlador = new AbortController();
     const mensaje = resultado.querySelector("[data-availability-message]");
     const titulo = resultado.querySelector("[data-availability-title]");
@@ -21,6 +23,7 @@ document.querySelectorAll("[data-availability]").forEach((boton) => {
     mensaje.textContent = "Esperando respuesta del servidor.";
     titulo.textContent = "Comprobando acceso";
     resultado.dataset.state = "loading";
+    if (descarga) descarga.hidden = true;
     // Duración mínima de la indicación visual, independiente del tiempo de red.
     // La petición se inicia inmediatamente; este plazo no representa procesamiento.
     const indicacionVisible = new Promise((resolver) =>
@@ -56,6 +59,8 @@ document.querySelectorAll("[data-availability]").forEach((boton) => {
       titulo.textContent = vista.titulo;
       mensaje.textContent = vista.detalle;
       resultado.dataset.state = vista.estado;
+      if (documento) documento.textContent = decision.estado_documento;
+      if (descarga) descarga.hidden = decision.descarga_habilitada !== true;
       if (reloj) {
         reloj.hidden = !vista.reloj || !vista.apertura;
         // Los textos y el instante ISO proceden del servidor, sin reloj local ni cuenta atrás.
@@ -82,6 +87,9 @@ document.querySelectorAll("[data-availability]").forEach((boton) => {
         "No fue posible comprobar la disponibilidad. Inténtalo de nuevo.";
       resultado.dataset.state = "error";
       if (reloj) reloj.hidden = true;
+      if (documento)
+        documento.textContent = "Disponibilidad del documento no verificada.";
+      if (descarga) descarga.hidden = true;
       confirmacion.textContent =
         "La verificación no se completó. Vuelve a comprobar el acceso.";
       confirmacion.dataset.state = "error";

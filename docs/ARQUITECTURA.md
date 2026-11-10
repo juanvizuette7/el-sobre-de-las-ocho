@@ -1,4 +1,18 @@
-# Arquitectura prevista
+# Arquitectura del proyecto
+
+## Estado vigente de etapa 3
+
+Etapas 1, 2A, 2B y 3 implementadas. El flujo vigente se detalla en [CRIPTOGRAFIA_SOBRE.md](CRIPTOGRAFIA_SOBRE.md), con resultados en [evidencia 3](evidencias/etapa-03.md). Las secciones de diseño inicial más abajo conservan propuestas históricas; para cifrado y entrega prevalece esta especificación implementada.
+
+Se añade `documentos` a la SQLite existente, sin borrar identidades, sesiones, reloj ni eventos. El mismo volumen privado `identidad` conserva `/data/sobres/*.gcm` y `/data/secrets/sobre-rsa.pem`, además de SQLite/TOTP. No se añade servicio o montaje en Nginx. `crypto.py` realiza AES-256-GCM/RSA-3072-OAEP-SHA256/SHA-256; `storage.py` administra versiones, escrituras atómicas, originales y copias de ensayo; `documents.py` aplica la política existente antes de verificar/entregar.
+
+POST y GET `/evaluaciones/{id}/documento` implementan publicación docente con MFA/CSRF/origen y descarga estudiantil con sesión/asignación/apertura e integridad. Solo TXT UTF-8 hasta 512 KiB. El GET construye una respuesta attachment después de autenticar GCM, comparar SHA y registrar la entrega. La disponibilidad y el panel integran esos resultados; el reloj grande y la confirmación sin hora real visible se conservan. La bitácora docente distingue hora real y referencia del recurso.
+
+Las acciones locales `app.demo sobre` preparan una muestra, inspeccionan huellas, activan cifrado dañado o texto distinto válidamente cifrado y restauran el original. No se exponen por HTTP. Los comandos de 2B conservan su comportamiento. La privada persiste; su pérdida bloquea y no causa regeneración sobre documentos existentes. La migración no reinicializa TOTP.
+
+La red sigue usando HTTP local. TLS, Wireshark, Packet Tracer y NAC pertenecen a etapa 4, pendiente. P1–P3 tienen verificación de aplicación; no se extiende al resto de prácticas.
+
+## Contexto histórico y diseño de etapas anteriores
 
 **Estado: etapas 1, 2A y 2B implementadas; protección/entrega de exámenes pendiente.** F3 = `docs/planificacion/Fase_3_Diseno_El_sobre_de_las_ocho.pdf`, páginas físicas. Requisitos y respuestas HTTP: [RESUMEN_PROYECTO.md](RESUMEN_PROYECTO.md). Fuentes docentes: [MATRIZ_CLASES.md](MATRIZ_CLASES.md). Resultados: [etapa 1](evidencias/etapa-01.md) y [etapa 2A](evidencias/etapa-02a.md).
 

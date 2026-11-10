@@ -9,6 +9,7 @@ from app.audit import registrar
 from app.clock import BOGOTA, ahora_real, cambiar_reloj, interpretar_instante, leer_reloj
 from app.config import configuracion_entorno
 from app.db import conexion, inicializar_base
+from app.storage import FalloSobre
 
 ID_EVALUACION = "evaluacion-001"
 
@@ -89,6 +90,9 @@ def principal():
     auditoria = acciones.add_parser("auditoria", help="Consulta decisiones de disponibilidad sin datos sensibles")
     auditoria.add_argument("--limite", type=int, default=20)
     reloj = acciones.add_parser("reloj", help="Consulta o cambia únicamente el reloj de disponibilidad")
+    sobre = acciones.add_parser("sobre", help="Operaciones criptográficas exclusivamente locales")
+    sobre.add_argument("operacion", choices=["preparar", "estado", "alterar-gcm", "alterar-hash", "restaurar", "auditoria"])
+    sobre.add_argument("--evaluacion", default=ID_EVALUACION)
     modos = reloj.add_subparsers(dest="modo", required=True)
     modos.add_parser("estado")
     fijar = modos.add_parser("fijar")
@@ -98,6 +102,19 @@ def principal():
     config = configuracion_entorno()
     inicializar_base(config)
     try:
+        if argumentos.accion == "sobre":
+            from app.storage import operacion_local, estado_sobre
+            if argumentos.operacion == "auditoria":
+                with conexion(config) as db:
+                    filas = db.execute("""SELECT instante,cuenta_id,accion,resultado,motivo,evaluacion_id,instante_didactico
+                                          FROM eventos WHERE accion IN ('publicar_documento','descargar_documento','verificar_integridad','laboratorio_sobre')
+                                          ORDER BY id DESC LIMIT 30""").fetchall()
+                print(json.dumps([dict(fila) for fila in filas], ensure_ascii=False, indent=2))
+            else:
+                if argumentos.operacion != "estado":
+                    operacion_local(config, argumentos.evaluacion, argumentos.operacion)
+                print(json.dumps(estado_sobre(config, argumentos.evaluacion), ensure_ascii=False, indent=2))
+            return
         if argumentos.accion == "auditoria":
             print(json.dumps(consultar_auditoria(config, argumentos.limite), ensure_ascii=False, indent=2))
             return
@@ -113,7 +130,7 @@ def principal():
                           "reloj_fijado" if instante else "reloj_normal",
                           instante_didactico=decision.isoformat())
         print(json.dumps(estado_reloj(config), ensure_ascii=False, indent=2))
-    except (ValueError, sqlite3.Error):
+    except (ValueError, sqlite3.Error, OSError, FalloSobre):
         parser.exit(1, "No se pudo configurar el ensayo. Verifique fecha/hora, almacenamiento y cuenta estudiante activa.\n")
 
 

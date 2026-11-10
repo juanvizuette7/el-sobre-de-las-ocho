@@ -1,5 +1,7 @@
 # Autorización por atributos y control horario — etapa 2B
 
+Integración vigente: etapa 3 reutiliza esta política para documentos reales. Disponibilidad añade metadatos/estado del sobre; con archivo íntegro y autorización devuelve `descarga_habilitada: true`, y ante fallo criptográfico devuelve 409. Sin archivo conserva el comportamiento 2B. La consulta no envía bytes del examen; GET `/evaluaciones/{id}/documento` revalida y entrega después de GCM/SHA. [Detalle](CRIPTOGRAFIA_SOBRE.md). Los comandos siguientes se conservan. El botón actual se llama **Comprobar acceso**; las notas sin archivo describen el cierre histórico de 2B.
+
 ## Alcance y estado
 
 Disponibilidad real de metadatos de evaluación según sesión vigente, rol, asignación y apertura completa en `America/Bogota`. Se conservan la autenticación, TOTP, cookies, CSRF y RBAC de [IDENTIDAD_ACCESO.md](IDENTIDAD_ACCESO.md). No hay carga, cifrado, comprobación de integridad ni descarga de archivos. La respuesta 200 de disponibilidad **no acredita una entrega de documento**.

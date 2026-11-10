@@ -1,6 +1,6 @@
 # El sobre de las ocho
 
-Portal académico de Sistemas de Comunicaciones y Seguridad Informática, Universidad Cooperativa de Colombia. **Etapas 1, 2A y 2B:** portada, salud, identidad/TOTP/RBAC y disponibilidad por asignación y apertura, en FastAPI detrás de Nginx. Reloj y metadatos en la SQLite existente. Publicación, descarga, cifrado, integridad del examen y laboratorio continúan pendientes.
+Portal académico de Sistemas de Comunicaciones y Seguridad Informática, Universidad Cooperativa de Colombia. **Etapas 1, 2A, 2B y 3:** identidad/TOTP/RBAC, asignación/apertura y documentos protegidos, en FastAPI detrás de Nginx. Publicación de TXT UTF-8 con AES-256-GCM, RSA-OAEP y SHA-256. SQLite y sobres en el volumen privado existente. TLS y laboratorios de red pendientes.
 
 ## Ejecutar en CMD de Windows
 
@@ -15,7 +15,13 @@ docker compose up -d --build --wait --wait-timeout 120
 start http://127.0.0.1:8080
 ```
 
-La portada permite iniciar sesión para acceder a los paneles privados docente y estudiante. Los paneles muestran asignación y programación; la entrega de documentos sigue pendiente. El laboratorio administrativo no tiene rutas ni controles operativos. **Comprobar conexión** consulta realmente `/health`. La navegación admite teclado y enlace de salto al contenido; sin JavaScript se conserva el acceso al JSON de salud y los formularios de acceso funcionan con envío HTML nativo.
+La portada permite iniciar sesión para acceder a los paneles privados. El docente publica el TXT en la tarjeta de evaluación y consulta actividad. El estudiante comprueba acceso y descarga únicamente si el backend autoriza y verifica integridad. El laboratorio no tiene controles web: sus herramientas son CLI locales. **Comprobar conexión** consulta `/health`. Los formularios de acceso/publicación funcionan con envío HTML nativo.
+
+## Sobre cifrado (etapa 3)
+
+Con las cuentas existentes, preparar la evaluación mediante el comando 2B y publicar un `.txt` UTF-8 de hasta 512 KiB desde el panel docente. No reinicializar identidades. El estudiante usa **Comprobar acceso**; conserva reloj grande y confirmación sin hora real visible. Cada descarga revalida RBAC/ABAC, AES-GCM y SHA-256 antes de emitir bytes.
+
+Guía completa con comandos comprobados, dos alteraciones y restauración: [CRIPTOGRAFIA_SOBRE.md](docs/CRIPTOGRAFIA_SOBRE.md). [Resultados](docs/evidencias/etapa-03.md): 120 pruebas y recorrido real de navegador. Módulos nuevos: `app/crypto.py`, `app/storage.py`, `app/documents.py`; tabla aditiva `documentos`. El volumen `identidad` conserva `/data/sobres` y `/data/secrets/sobre-rsa.pem`. Nunca eliminarlo para reiniciar o repetir. Las notas de disponibilidad sin archivo siguientes documentan la etapa histórica 2B; la integración vigente está en la guía criptográfica.
 
 ## Inicializar las cuentas ficticias
 
@@ -49,7 +55,7 @@ En el panel estudiante, pulsar **Actualizar disponibilidad**: 07:59:59 devuelve 
     docker compose exec app python -m app.demo asignacion asignar
     docker compose exec app python -m app.demo auditoria --limite 20
 
-Con asignación: 200 a las 08:00 y 08:01. Al retirarla: 403; al reasignar: 200. Ninguna respuesta entrega archivos.
+Con asignación: 200 a las 08:00 y 08:01. Al retirarla: 403; al reasignar: 200. La disponibilidad JSON no entrega bytes del examen: si existe un sobre válido, habilita el enlace cuya ruta revalida y descarga.
 
 Para tiempo real: ejecutar el comando siguiente (puede autorizar si ya pasó la apertura):
 
@@ -93,7 +99,7 @@ docker build --target test -t el-sobre-de-las-ocho-tests:etapa2b .
 docker run --rm --network none --read-only --tmpfs /tmp el-sobre-de-las-ocho-tests:etapa2b
 ```
 
-Se conservan nueve casos de regresión de portada/infraestructura y se añaden pruebas de identidad, MFA, CSRF, RBAC, vigencia, revocación y ausencia de secretos. `/docente` sin sesión ahora devuelve 401; las rutas inexistentes siguen en 404. La suite usa bases temporales sin acceder al volumen real. Resultados en [la ficha 2A](docs/evidencias/etapa-02a.md); el historial de etapa 1 permanece en [su ficha](docs/evidencias/etapa-01.md). P1 conserva cobertura parcial de identidad; P2 verifica el límite mediante JSON, sin original; P3–P10 siguen pendientes.
+Se conservan los casos de portada/infraestructura, identidad, MFA, CSRF, RBAC, vigencia, revocación y ausencia de secretos. La suite usa bases temporales sin acceder al volumen real. Las fichas [2A](docs/evidencias/etapa-02a.md), [2B](docs/evidencias/etapa-02b.md) y [3](docs/evidencias/etapa-03.md) distinguen la cobertura de cada entrega: P1–P3 se verifican en etapa 3; P4–P10 siguen pendientes. Para ejecutar toda la suite vigente, construir el destino test y usar la etiqueta `etapa3` de la guía criptográfica; las etiquetas históricas siguientes no identifican ramas de código.
 
 Revisión de navegador opcional, solo para desarrollo: requiere Node/npm y Google Chrome instalado; no se necesita para usar el portal. Las herramientas quedan en `.qa/`, ignorada por Git y excluida del contexto Docker:
 
@@ -136,4 +142,4 @@ La [guía Windows](docs/GUIA_WINDOWS.md) contiene los procedimientos operativos.
 
 Referencias técnicas consultadas: [plantillas en FastAPI](https://fastapi.tiangolo.com/advanced/templates/), [TestClient y pytest](https://fastapi.tiangolo.com/tutorial/testing/) y [salud y orden de arranque en Compose](https://docs.docker.com/compose/how-tos/startup-order/). Las fuentes académicas y páginas siguen siendo los PDF locales indicados en la matriz.
 
-2A implementa identidad/RBAC y 2B añade ABAC de disponibilidad, asignaciones y reloj independiente. La etapa 3 requiere autorización: cifrado, integridad y entrega del examen siguen pendientes.
+2A implementa identidad/RBAC y 2B añade ABAC de disponibilidad, asignaciones y reloj independiente. La etapa 3 añade cifrado, integridad y entrega real. La siguiente etapa es 4 y no se inicia automáticamente.

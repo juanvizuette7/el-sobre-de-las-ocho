@@ -1,5 +1,7 @@
 # Identidad y control de acceso — etapa 2A
 
+Integración vigente: etapa 3 incorpora publicación/descarga sobre estas mismas identidades, TOTP, sesiones y política. No se reinicializan cuentas ni secretos. El procedimiento 2A sigue vigente; las menciones históricas a publicación pendiente se sustituyen por [CRIPTOGRAFIA_SOBRE.md](CRIPTOGRAFIA_SOBRE.md) y [evidencia 3](evidencias/etapa-03.md). `/descargar` sigue inexistente; la nueva ruta es `/evaluaciones/{id}/documento`. Los POST de carga tienen CSRF/origen y revalidación docente/MFA propios para multipart, conservando intactos los formularios de identidad.
+
 ## Alcance
 
 Autenticación real de dos cuentas ficticias, TOTP obligatorio docente, sesiones opacas persistentes, RBAC en servidor y auditoría de identidad. El portal conserva FastAPI/Uvicorn, Nginx, dos servicios Compose y publicación exclusiva en `127.0.0.1:8080`. SQLite se ejecuta dentro de Python, sin servicio adicional. Actualización 2B: asignaciones, reloj didáctico y ABAC de disponibilidad ya funcionan sobre metadatos; véase [AUTORIZACION_HORARIO.md](AUTORIZACION_HORARIO.md). Publicación, descargas, cifrado y laboratorios siguen sin implementar. Esta guía conserva el procedimiento de identidad de 2A.

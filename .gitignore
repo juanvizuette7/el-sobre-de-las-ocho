@@ -41,6 +41,7 @@
 *.sqlite3
 *.sqlite3-*
 *.enc
+*.gcm
 *.bak
 *.backup
 *.dump

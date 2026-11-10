@@ -9,6 +9,8 @@ from app.policy import consultar_disponibilidad
 from app.sessions import NOMBRE_COOKIE
 from app.presentation import presentar_decision, presentar_programacion, fecha_hora_visual
 from app.clock import leer_reloj, BOGOTA
+from app.documents import resolver_documento
+from app.storage import metadatos
 
 router = APIRouter()
 
@@ -27,20 +29,21 @@ def evaluaciones_del_panel(request: Request, sesion, docente: bool) -> list[dict
                 referencia = leer_reloj(db).isoformat()
             except ValueError:
                 referencia = None
-            return [{**dict(fila), "presentacion": presentar_programacion(referencia, fila["apertura"])}
+            return [{**dict(fila), "presentacion": presentar_programacion(referencia, fila["apertura"]),
+                     "documento": metadatos(db.execute("SELECT * FROM documentos WHERE evaluacion_id=?", (fila["id"],)).fetchone())}
                     for fila in filas]
         ids = [fila[0] for fila in db.execute(
             "SELECT evaluacion_id FROM asignaciones WHERE cuenta_id=? ORDER BY evaluacion_id",
             (sesion["cuenta_id"],),
         )]
-    return [presentar_decision(consultar_disponibilidad(config, request.cookies.get(NOMBRE_COOKIE), identificador))
+    return [presentar_decision(resolver_documento(config, request.cookies.get(NOMBRE_COOKIE), identificador)[0])
             for identificador in ids]
 
 
 @router.get("/evaluaciones/{evaluacion_id}/disponibilidad")
 def disponibilidad(request: Request, evaluacion_id: str = Path(pattern=r"^[a-zA-Z0-9_-]{1,64}$")):
     """Expone una decisión real JSON; un 200 no representa descarga o integridad."""
-    decision = consultar_disponibilidad(request.app.state.config, request.cookies.get(NOMBRE_COOKIE), evaluacion_id)
+    decision, _ = resolver_documento(request.app.state.config, request.cookies.get(NOMBRE_COOKIE), evaluacion_id)
     respuesta = presentar_decision(decision)
     # Hora real de esta respuesta, independiente de la referencia simulada del recurso.
     respuesta["presentacion"]["consulta"] = fecha_hora_visual(datetime.now(BOGOTA).isoformat())

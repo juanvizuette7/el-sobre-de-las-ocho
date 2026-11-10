@@ -1,6 +1,218 @@
 # Guía del estudiante: entender el sobre
 
-**Material privado de aprendizaje. Etapas 1, 2A y 2B implementadas; examen protegido pendiente.** Cuentas, sesiones, TOTP y permisos por rol ya funcionan; asignaciones y horario también funcionan; cifrado y descarga todavía no. La especificación principal es `docs/planificacion/Fase_3_Diseno_El_sobre_de_las_ocho.pdf` (F3). Para relacionar cada concepto con la clase y página original, consulta MATRIZ_CLASES. Esta guía no forma parte de las pantallas del producto ni de una entrega pública; estar ignorada no retira la copia que ya estaba versionada en Git.
+## Etapa 3: explicación desde cero y demostración personal
+
+La etapa 3 añade documentos reales al sistema existente. Esta sección describe lo implementado; las secciones históricas de 1/2A/2B que aparecen después explican lo que existía al cerrar cada etapa. La guía es privada para estudiar, no texto para poner en la aplicación. La descripción técnica de entrega está en [CRIPTOGRAFIA_SOBRE.md](CRIPTOGRAFIA_SOBRE.md).
+
+### Primero: qué estamos protegiendo
+
+Un archivo contiene **bytes**, números que representan sus letras y saltos de línea. Por ejemplo, `Pregunta 1` es una secuencia de bytes. Queremos guardar esa secuencia sin que alguien que solo copie el archivo del almacén pueda leerla, y queremos devolver exactamente la secuencia aprobada por el docente.
+
+**Confidencialidad** significa limitar quién puede conocer el contenido. **Integridad** significa detectar que el contenido recuperado no coincide con el aprobado. **Autenticación** comprueba quién eres. **Autorización** decide si puedes hacer una operación. Son problemas relacionados pero diferentes. Cifrar no comprueba por sí solo que sean las ocho, y tener una contraseña de estudiante no permite abrir cualquier evaluación.
+
+**Cifrar** transforma los bytes legibles en otros bytes mediante un algoritmo y una clave. **Descifrar** recupera los originales usando la clave adecuada. No es cambiar la extensión `.txt` a otra, ni esconder el archivo con CSS. En el volumen hay bytes producidos realmente por una biblioteca criptográfica.
+
+Poner una contraseña en una pantalla puede limitar el acceso a esa pantalla, pero no garantiza que el archivo del disco esté cifrado. Algunos formatos protegidos con contraseña sí usan cifrado internamente; no todas las protecciones con contraseña son iguales. Aquí la contraseña identifica la cuenta mediante Argon2id. Una clave AES diferente protege el documento. No usamos la contraseña del docente como clave AES.
+
+### AES y sus números, sin memorizar fórmulas
+
+AES es un algoritmo de cifrado **simétrico**: una misma clave permite cifrar y descifrar. Nuestra clave tiene 256 bits, equivalentes a 32 bytes. Se genera al azar con una fuente diseñada para criptografía. No es `1234`, ni una frase inventada, ni una constante del código.
+
+GCM es el modo que usamos con AES. Además del ciphertext (el contenido cifrado), produce una etiqueta de autenticación o **tag**. Al descifrar, la biblioteca comprueba esa etiqueta. Si la comprobación falla, no devuelve el texto. Nuestra etiqueta tiene 128 bits, 16 bytes. La guardamos unida al cifrado.
+
+También usamos un **nonce**: un valor de 96 bits, 12 bytes, que acompaña a una operación. No es una contraseña y puede guardarse con los metadatos. Lo peligroso sería volver a cifrar con la misma clave AES y el mismo nonce. Nuestro `cifrar` genera ambos de nuevo cada vez. Dos publicaciones del mismo texto producen cifrados distintos.
+
+Los **datos autenticados adicionales**, AAD, no se ocultan, pero se incluyen en la comprobación GCM. Aquí identifican formato, evaluación y versión. Es como escribir el número del examen y de su edición en el sello. Si alguien intenta intercambiar un sobre entre evaluaciones o versiones, la autenticación no coincide.
+
+Decir que GCM autentica el cifrado no significa que compruebe la cuenta docente ni que sea una firma digital. Comprueba una relación criptográfica entre clave, nonce, AAD y ciphertext/tag. Identidad y permisos se revisan aparte.
+
+### RSA: proteger la llave pequeña
+
+RSA es **asimétrico**: tiene una clave pública y otra privada relacionadas matemáticamente. La pública permite proteger un dato; la privada permite recuperarlo en este uso de cifrado. Compartir la pública no equivale a revelar la privada.
+
+Nuestro servidor genera RSA de 3072 bits una vez. De esa privada obtiene la pública. No cifra todo el examen con RSA: RSA tiene un límite de tamaño y resulta más adecuado aquí para proteger los 32 bytes de la clave AES. AES protege el archivo; RSA protege la clave AES. Eso se llama **cifrado híbrido**.
+
+RSA-OAEP es el esquema de cifrado RSA que usa la biblioteca. Está configurado con SHA-256 y MGF1-SHA256. No basta escribir la palabra RSA y aplicar operaciones matemáticas propias: el esquema completo importa. En `app/crypto.py`, `oaep`, `cifrar` y `descifrar` utilizan las primitivas de `cryptography`.
+
+La AES envuelta por RSA se guarda en SQLite. La AES en claro solo se usa en la memoria del proceso. La privada RSA se guarda en `/data/secrets/sobre-rsa.pem`, con permiso 0600. El programa puede usarla; no se envía al navegador ni aparece en la bitácora. No la abras para tomar capturas. Nginx no monta ese volumen.
+
+Si la privada se pierde, una copia del documento cifrado no permite recuperarlo por sí sola. Generar otro par RSA no recupera los documentos anteriores. Por eso el sistema se niega a regenerarla si faltó cuando ya hay documentos. Reiniciar los contenedores conserva el volumen; borrar el volumen no es reiniciar.
+
+### SHA-256: comparar lo aprobado
+
+Un **hash** es una huella calculada a partir de los bytes. SHA-256 produce 256 bits, que solemos representar como 64 caracteres hexadecimales. No es una clave para descifrar. El hash no permite volver al texto original.
+
+Al publicar calculamos la huella del original y la guardamos como referencia de esa versión. Al recuperar el documento calculamos otra huella y la comparamos. Cambiar una letra normalmente produce una huella completamente distinta; criptográficamente se busca que encontrar colisiones sea impracticable, no una promesa matemática de que dos archivos cualesquiera nunca puedan compartir huella.
+
+La referencia debe estar protegida. Si un atacante administra el volumen y cambia a la vez documento, claves y huella esperada, SHA-256 por sí solo no descubre quién era el autor legítimo. Nuestra protección es contra cuentas web ordinarias que no tienen acceso al almacén ni un campo para editar la huella. El docente sí puede publicar deliberadamente otra versión, que establece otra referencia.
+
+### Por qué usamos GCM y SHA-256
+
+Son dos preguntas diferentes:
+
+1. GCM pregunta: «¿Se puede autenticar este cifrado con esta clave, nonce y contexto?».
+2. SHA-256 pregunta: «¿Los bytes recuperados son los que aprobamos al publicar esta versión?».
+
+En el caso A de la demostración rompemos un byte cifrado. GCM falla antes de recuperar texto. En el caso B, la herramienta local puede usar la clave del servidor para cifrar correctamente un texto con una letra cambiada. GCM lo acepta, porque es un cifrado válido, pero la huella es distinta de la original. Entonces falla SHA-256. No son dos mensajes simulados: son dos fallos distintos ejecutados realmente.
+
+El caso B requiere permisos del operador de Docker. Un estudiante normal no dispone de un endpoint para volver a cifrar o alterar el archivo. Esa herramienta es una prueba controlada de la referencia aprobada, no una vulnerabilidad web deliberada.
+
+### Recorrido exacto: desde seleccionar el archivo hasta descargarlo
+
+1. Abres Docker Desktop con contenedores Linux. Desde CMD arrancas los dos servicios. No necesitas instalar la biblioteca criptográfica en Windows: está en la imagen Python.
+2. Entras como docente con la contraseña ya configurada y el código actual del autenticador. No reinicialices cuentas existentes.
+3. Abres la tarjeta de la evaluación. Su título y fecha de apertura indican cuál vas a publicar; cada tarjeta tiene su propio formulario.
+4. Pulsas el selector de archivo y eliges un `.txt` UTF-8. El control nativo muestra el nombre. Puedes prepararlo con Bloc de notas usando texto ficticio. No hace falta copiarlo dentro de Docker.
+5. Pulsas **Publicar documento protegido**. El navegador manda un POST multipart con el archivo y el token CSRF de la sesión. El servidor comprueba docente/MFA, sesión vigente, origen y CSRF. No confía en que el botón estuviera visible.
+6. `leer_carga` de `app/documents.py` limita el cuerpo. `validar_texto` de `app/storage.py` comprueba tamaño, extensión, UTF-8, contenido no vacío y ausencia de controles binarios; prepara un nombre seguro. Un Content-Type que diga texto no vuelve válido un ejecutable.
+7. `publicar_en_transaccion` confirma que la evaluación existe, crea una versión nueva y calcula la huella de los bytes exactos. La asignación y apertura que ya existían no se duplican ni se cambian con la subida.
+8. `privada` abre la RSA existente o la crea solamente en la primera publicación. `cifrar` genera AES/nonce nuevos, cifra el documento y envuelve AES con la pública RSA.
+9. `escribir_atomico` escribe solo ciphertext en un archivo temporal privado, sincroniza y lo renombra. SQLite guarda los metadatos y la referencia. La auditoría registra la publicación; el navegador vuelve al panel con la confirmación.
+10. En otra ventana privada entras como estudiante. Las ventanas separadas permiten tener cookies y cuentas distintas en el mismo computador.
+11. El panel muestra la evaluación asignada, la apertura, el reloj grande y el estado. **Comprobar acceso** consulta realmente al backend. La indicación dura al menos 600 ms para ser perceptible, pero la petición se manda de inmediato. «Verificación completada» significa que hubo respuesta, no necesariamente que se autorizó la descarga. La hora real no se añade a esta confirmación visual.
+12. `resolver_documento` de `app/documents.py` utiliza la política de `app/policy.py`. Revisa sesión real, rol estudiante, asignación y fecha/hora del laboratorio. Vuelve a validar dentro del bloqueo que protege la lectura de versión y la bitácora.
+13. Antes de apertura no descifra. Si ya corresponde y hay archivo, `recuperar` abre el ciphertext, utiliza RSA para recuperar AES, autentica GCM y compara SHA-256 con la referencia.
+14. Si todo está correcto, la disponibilidad permite mostrar **Descargar documento**. Al pulsarlo hay otra petición al servidor y se repiten las comprobaciones: no se reutiliza un permiso antiguo guardado por JavaScript.
+15. `descargar_documento` devuelve el documento completo con nombre seguro, attachment y no-store. Si algo falla, no construye una respuesta con bytes del examen ni manda un fragmento antes de terminar.
+
+La interfaz muestra nombres, fechas y estados útiles. No necesita enseñar la clave, el hash completo o el motivo criptográfico interno a un estudiante. La auditoría local permite explicar al profesor qué control falló.
+
+### Qué se guarda y dónde
+
+| Lugar | Contenido | Qué no debes mostrar en una evidencia |
+|---|---|---|
+| SQLite `/data/portal.sqlite3` | Cuentas/sesiones existentes; tabla `documentos` con versión, tamaño, nombre, fecha, SHA, creador, descriptores de original/activo; eventos | Dump de sesiones, derivados de contraseñas o tokens |
+| `/data/sobres` | Archivos `.gcm`: ciphertext y etiqueta, identificados al azar | No se necesita publicar el almacén completo |
+| `/data/secrets/sobre-rsa.pem` | Privada RSA persistente | Su contenido completo o parcial |
+| `/data/secrets/docente.totp` | Secreto del autenticador ya existente | Su contenido, URI o códigos |
+| Memoria del proceso | Texto mientras se carga/verifica y AES mientras se usa | Volcados de memoria o depuración con secretos |
+| Computador del estudiante | Copia original después de una descarga autorizada | Datos reales de otras personas |
+
+En SQLite, `original` selecciona la copia cifrada aprobada y `activo` la que se consulta ahora. Normalmente apuntan a la misma. La herramienta puede activar otra copia conservando original y SHA. Restaurar vuelve al descriptor original. No modifica contraseñas, TOTP, asignaciones o reloj.
+
+El volumen se llama `identidad` por compatibilidad con las etapas anteriores. Ahora contiene también sobres y RSA. Que el nombre sea antiguo no significa que exista un servidor nuevo: siguen siendo dos servicios y una sola SQLite. Un volumen conserva datos entre reinicios, pero no es un respaldo contra su eliminación.
+
+### Demostración guiada, un comando a la vez
+
+Estos comandos se escriben en **CMD**, desde la carpeta del proyecto. La fecha es de ensayo; puedes mantenerla aunque el día real sea otro. Las cuentas ya deben existir.
+
+```bat
+cd /d C:\Users\juanv\Proyectos\el-sobre-de-las-ocho
+docker compose up -d --build --wait --wait-timeout 120
+docker compose exec app python -m app.demo preparar --fecha 2026-11-09
+start http://127.0.0.1:8080/acceso
+```
+
+Espera a que Compose indique servicios saludables. Entra con cada cuenta en ventanas diferentes. El comando `preparar` de 2B configura evaluación/asignación y detiene el reloj a las 07:59:59. **No borra un documento publicado**.
+
+Primero demuestra la subida docente real con tu `.txt`. Para preparar rápidamente una muestra reproducible existe una alternativa:
+
+```bat
+docker compose exec app python -m app.demo sobre preparar
+docker compose exec app python -m app.demo sobre estado
+```
+
+Atención: `sobre preparar` publica la muestra y sustituye el documento actual de ese caso. No lo uses para restaurar tu archivo personalizado: para eso existe `sobre restaurar`. La muestra no contiene un examen real ni secretos. `estado` muestra GCM correcto, integridad verdadera y dos huellas iguales. Puedes decir: «El programa recuperó el contenido con las primitivas reales y comparó su huella con la referencia». Ver bytes ilegibles por sí solo no demostraría seguridad.
+
+Con el estudiante pulsa **Comprobar acceso**: a las 07:59:59 debe aparecer el candado cerrado y no debe mostrarse un enlace habilitado. Explica: «El rechazo lo decide Python, no el botón». Luego:
+
+```bat
+docker compose exec app python -m app.demo reloj fijar 2026-11-09T08:00:00
+```
+
+Vuelve a comprobar. Debe aparecer acceso autorizado, documento verificado y enlace de descarga. Descarga y abre el `.txt`: sus bytes deben ser los publicados. Las pruebas automáticas comparan bytes, no solo que exista un archivo.
+
+Para demostrar que la hora no es suficiente:
+
+```bat
+docker compose exec app python -m app.demo asignacion retirar
+```
+
+Comprobar → restricción por no asignada. Una URL guardada también recibe 403. Reponer:
+
+```bat
+docker compose exec app python -m app.demo asignacion asignar
+```
+
+Caso A:
+
+```bat
+docker compose exec app python -m app.demo sobre alterar-gcm
+docker compose exec app python -m app.demo sobre estado
+```
+
+En el navegador, comprobar acceso o intentar la URL de descarga. Debe bloquearse con 409, sin documento. En terminal GCM no supera autenticación. Explica: «Cambié los bytes cifrados; la etiqueta ya no coincide». Volver al original:
+
+```bat
+docker compose exec app python -m app.demo sobre restaurar
+```
+
+Descargar otra vez para comprobar que se recuperó. Caso B:
+
+```bat
+docker compose exec app python -m app.demo sobre alterar-hash
+docker compose exec app python -m app.demo sobre estado
+```
+
+Aquí GCM debe figurar correcto, pero las huellas deben ser distintas e integridad falsa. Comprobar/descargar → 409. Explica: «Esta copia está cifrada correctamente, pero no contiene lo aprobado. La referencia original no se actualizó y SHA-256 lo detectó».
+
+```bat
+docker compose exec app python -m app.demo sobre restaurar
+docker compose exec app python -m app.demo sobre auditoria
+```
+
+Comprueba otra descarga original. En la auditoría identifica `autenticacion_gcm_fallida`, `discrepancia_sha256`, `original_verificado` y `restaurar`. El instante real del evento es distinto de la referencia didáctica. No intentes alinear ambos cambiando Windows.
+
+Para cerrar el ensayo y dejarlo listo para repetir:
+
+```bat
+docker compose exec app python -m app.demo preparar --fecha 2026-11-09
+```
+
+Para probar persistencia, restaura primero, deja apertura a las ocho, descarga, ejecuta `docker compose restart`, espera servicios saludables con `docker compose up -d --wait --wait-timeout 120`, y descarga con la sesión aún vigente. Debe ser el mismo contenido. Una sesión realmente vencida requiere iniciar sesión otra vez: reiniciar no debe volverla inmortal. Nunca uses `down -v` para este ensayo.
+
+### Mensajes y diagnóstico sin improvisar
+
+| Mensaje/resultado | Significado y siguiente paso |
+|---|---|
+| Examen bloqueado / falta un segundo | La referencia del recurso aún está antes de la apertura; fijar las ocho y comprobar |
+| Acceso autorizado / horario cumplido | Se superaron reglas; revisar también si el documento ya está publicado |
+| Documento pendiente de publicación | La evaluación existe, pero aún no tiene sobre; publicar como docente |
+| Evaluación no asignada | Cumplir horario no sustituye la asignación; reponer con CLI autorizada |
+| Entrega bloqueada por integridad | No se mandó el examen; consultar la bitácora y restaurar el original |
+| Verificación completada | La consulta terminó; leer el estado final para saber si permite o rechaza |
+| Disponibilidad no verificada | Error de transporte/servicio; no asumir que el estado anterior sigue vigente; reintentar |
+| 400 / 413 al publicar | Formato, contenido, nombre o tamaño no admitido; revisar el TXT |
+| 401 | Sesión ausente, incompleta o vencida; entrar nuevamente |
+| 403 en publicación | Rol/MFA/CSRF/origen no válido; no intentar saltarse el control cambiando JavaScript |
+| Clave no disponible en estado local | No generar otra ni borrar datos; recuperar un respaldo privado consistente |
+
+### Preguntas difíciles y respuestas correctas
+
+| Pregunta del docente | Respuesta con nuestro proyecto |
+|---|---|
+| ¿AES-256 significa contraseña de 256 caracteres? | No. La clave aleatoria tiene 256 bits, 32 bytes; es independiente de la contraseña de acceso. |
+| ¿Dónde está la clave AES? | Se usa temporalmente en memoria; en disco solo permanece envuelta con RSA-OAEP. |
+| ¿La pública RSA puede abrir el examen? | En este esquema de cifrado la pública protege AES; la privada la recupera. No es un uso de firma digital. |
+| ¿Por qué no usar solo RSA? | El tamaño de entrada de RSA-OAEP es limitado. AES cifra el archivo eficientemente y RSA protege su pequeña clave. |
+| ¿Cómo sabes que no estás simulando cifrado? | Las pruebas recuperan los bytes reales, OAEP con otra privada falla y modificar ciphertext/tag produce InvalidTag. |
+| ¿GCM ya no comprueba integridad? | Sí autentica el cifrado. SHA compara además el texto recuperado con la referencia de la versión aprobada; el caso B lo distingue. |
+| ¿Por qué no MD5 como el taller? | El taller C1 muestra la idea del hash con MD5; el proyecto usa SHA-256 según F3 y las decisiones de implementación. |
+| ¿Un atacante podría cambiar archivo y hash? | Si administra el volumen podría alterar ambos. No afirmamos protección contra el dueño de Docker; las cuentas web no pueden editar la referencia directamente. |
+| ¿Una clave distinta para dos documentos importa? | Separa material por publicación y evita reutilizar clave/nonce. AAD también vincula recurso y versión. |
+| ¿Restaurar reutiliza un nonce de manera peligrosa? | No vuelve a cifrar: selecciona los mismos bytes del original ya cifrado. Toda nueva operación de cifrado genera AES/nonce nuevos. |
+| ¿Qué pasa si el servidor cae a mitad de escribir? | Primero escribe un temporal y lo renombra completo; después confirma metadatos. Puede quedar un huérfano, pero no se autoriza texto parcial. No prometemos tolerancia a cualquier fallo físico. |
+| ¿Por qué no hay descarga antes de las ocho si conozco la URL? | El GET vuelve a comprobar sesión, rol, asignación y apertura en backend antes de descifrar. |
+| ¿El reloj simulado afecta TOTP? | No. Sesiones y TOTP mantienen tiempo real; solo la apertura usa la referencia del laboratorio. |
+| ¿Es confidencial la conexión HTTP actual? | No. El cifrado en disco no cifra la red. TLS y su evidencia corresponden a etapa 4. |
+| ¿El administrador puede ejecutar la alteración desde la web? | No hay endpoint de laboratorio. Se requiere la herramienta local dentro de Docker. |
+| ¿El sistema borra lo que el estudiante descargó? | No. no-store evita caché intencional del portal, pero no revoca una copia guardada legítimamente. |
+
+Para verificar, ejecutar la suite en la imagen de pruebas y el recorrido de navegador como indica CRIPTOGRAFIA_SOBRE. La ficha `docs/evidencias/etapa-03.md` contiene los resultados realmente observados. No presentar TLS, Wireshark, NAC o análisis de vulnerabilidades como realizados en esta etapa.
+
+## Archivo histórico de aprendizaje de etapas 1, 2A y 2B
+
+**Estado histórico anterior a etapa 3; consultar el capítulo vigente de arriba para cifrado y descarga.** Cuentas, sesiones, TOTP y permisos por rol ya funcionan; asignaciones y horario también funcionan; cifrado y descarga todavía no. La especificación principal es `docs/planificacion/Fase_3_Diseno_El_sobre_de_las_ocho.pdf` (F3). Para relacionar cada concepto con la clase y página original, consulta MATRIZ_CLASES. Esta guía no forma parte de las pantallas del producto ni de una entrega pública; estar ignorada no retira la copia que ya estaba versionada en Git.
 
 ## Disponibilidad y reloj de la etapa 2B
 

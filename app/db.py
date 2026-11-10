@@ -50,6 +50,17 @@ CREATE TABLE IF NOT EXISTS asignaciones (
     cuenta_id INTEGER NOT NULL REFERENCES cuentas(id),
     PRIMARY KEY (evaluacion_id, cuenta_id)
 );
+CREATE TABLE IF NOT EXISTS documentos (
+    evaluacion_id TEXT PRIMARY KEY REFERENCES evaluaciones(id),
+    version TEXT NOT NULL,
+    nombre TEXT NOT NULL,
+    tamano INTEGER NOT NULL,
+    sha256 TEXT NOT NULL,
+    publicado TEXT NOT NULL,
+    creador INTEGER REFERENCES cuentas(id),
+    original TEXT NOT NULL,
+    activo TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS reloj_evaluaciones (
     id INTEGER PRIMARY KEY CHECK (id=1),
     instante_fijo TEXT

@@ -29,9 +29,8 @@ async function verificar() {
     environment:
       PORTAL_ORIGIN: http://127.0.0.1:8081
     read_only: true
-    tmpfs:
-      - /data:uid=10001,gid=10001,mode=0700
-      - /tmp
+    tmpfs: [/tmp]
+    volumes: [datos_prueba:/data]
     networks: [portal]
     healthcheck:
       test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
@@ -62,6 +61,8 @@ networks:
   entrada: {}
   portal:
     internal: true
+volumes:
+  datos_prueba: {}
 `,
   );
   const estudiante = randomBytes(24).toString("base64url");
@@ -385,8 +386,174 @@ networks:
       path: ".qa/capturas/panel-docente-390.png",
       fullPage: true,
     });
+    etapa = "publicacion_real_etapa3";
+    const original = Buffer.from(
+      "EL SOBRE DE LAS OCHO\nParcial ficticio publicado desde el navegador.\n",
+    );
+    await pagina
+      .locator('input[type="file"]')
+      .setInputFiles({
+        name: "parcial-demo.txt",
+        mimeType: "text/plain",
+        buffer: original,
+      });
+    assert.match(
+      await pagina.locator('input[type="file"]').inputValue(),
+      /parcial-demo.txt$/,
+    );
+    await pagina
+      .getByRole("button", { name: "Publicar documento protegido" })
+      .click();
+    await pagina.waitForURL("**/docente?publicado=1");
+    assert.match(
+      await pagina.locator("body").textContent(),
+      /Documento almacenado y protegido correctamente/,
+    );
+    const sobreEstado = () => JSON.parse(administrarEnsayo("sobre", "estado"));
+    const publicado = sobreEstado();
+    assert.equal(publicado.integridad, true);
+    assert.equal(publicado.autenticacion_gcm, "correcta");
+    for (const ancho of [1440, 390]) {
+      await pagina.setViewportSize({ width: ancho, height: 900 });
+      assert.equal(
+        await pagina.evaluate(
+          () => document.documentElement.scrollWidth > innerWidth,
+        ),
+        false,
+      );
+      const axe = await new AxeBuilder({ page: pagina })
+        .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+        .analyze();
+      assert.deepEqual(
+        axe.violations.map((v) => v.id),
+        [],
+      );
+      await pagina.screenshot({
+        path: `.qa/capturas/sobre-docente-${ancho}.png`,
+        fullPage: true,
+      });
+    }
     await pagina.getByRole("button", { name: "Cerrar sesión" }).click();
     await pagina.waitForURL("**/acceso");
+    etapa = "entrega_real_etapa3";
+    await acceso("estudiante", estudiante);
+    await pagina.waitForURL("**/estudiante");
+    administrarEnsayo("reloj", "fijar", "2026-11-09T07:59:59");
+    const rutaDocumento = url + "/evaluaciones/evaluacion-001/documento";
+    assert.equal((await pagina.request.get(rutaDocumento)).status(), 403);
+    await pagina.getByRole("button", { name: "Comprobar acceso" }).click();
+    await pagina.waitForFunction(
+      () =>
+        document.querySelector("[data-query-feedback]")?.dataset.state ===
+        "complete",
+    );
+    assert.equal(await pagina.locator("[data-download]").isHidden(), true);
+    administrarEnsayo("reloj", "fijar", "2026-11-09T08:00:00");
+    const comprobarSobre = async (codigo) => {
+      const pendiente = pagina.waitForResponse(
+        (r) => new URL(r.url()).pathname === rutaDisponibilidad,
+      );
+      await pagina.getByRole("button", { name: "Comprobar acceso" }).click();
+      assert.equal((await pendiente).status(), codigo);
+      await pagina.waitForFunction(
+        () =>
+          document.querySelector("[data-query-feedback]")?.dataset.state ===
+          "complete",
+      );
+      assert.equal(
+        await pagina.locator("[data-download]").isVisible(),
+        codigo === 200,
+      );
+    };
+    await comprobarSobre(200);
+    const [descarga] = await Promise.all([
+      pagina.waitForEvent("download"),
+      pagina.getByRole("link", { name: "Descargar documento" }).click(),
+    ]);
+    assert.equal(descarga.suggestedFilename(), "parcial-demo.txt");
+    assert.deepEqual(fs.readFileSync(await descarga.path()), original);
+    for (const ancho of [1440, 390]) {
+      await pagina.setViewportSize({ width: ancho, height: 900 });
+      assert.equal(
+        await pagina.evaluate(
+          () => document.documentElement.scrollWidth > innerWidth,
+        ),
+        false,
+      );
+      const axe = await new AxeBuilder({ page: pagina })
+        .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+        .analyze();
+      assert.deepEqual(
+        axe.violations.map((v) => v.id),
+        [],
+      );
+      await pagina.screenshot({
+        path: `.qa/capturas/sobre-estudiante-${ancho}.png`,
+        fullPage: true,
+      });
+    }
+    etapa = "persistencia_real_etapa3";
+    docker(["restart"]);
+    docker(["up", "-d", "--wait", "--wait-timeout", "90"]);
+    assert.deepEqual(
+      await (await pagina.request.get(rutaDocumento)).body(),
+      original,
+    );
+    assert.equal(sobreEstado().sha256_original, publicado.sha256_original);
+    for (const alteracion of ["alterar-gcm", "alterar-hash"]) {
+      administrarEnsayo("sobre", alteracion);
+      const estado = sobreEstado();
+      assert.equal(estado.sha256_original, publicado.sha256_original);
+      assert.equal(
+        estado.autenticacion_gcm,
+        alteracion === "alterar-hash" ? "correcta" : "no_superada",
+      );
+      const rechazo = await pagina.request.get(rutaDocumento);
+      assert.equal(rechazo.status(), 409);
+      assert.equal((await rechazo.body()).includes(original), false);
+      await comprobarSobre(409);
+      assert.match(
+        await pagina.locator("[data-document-message]").textContent(),
+        /integridad/,
+      );
+      await pagina.screenshot({
+        path: `.qa/capturas/sobre-${alteracion}-390.png`,
+        fullPage: true,
+      });
+      administrarEnsayo("sobre", "restaurar");
+      assert.deepEqual(
+        await (await pagina.request.get(rutaDocumento)).body(),
+        original,
+      );
+    }
+    administrarEnsayo("asignacion", "retirar");
+    assert.equal((await pagina.request.get(rutaDocumento)).status(), 403);
+    administrarEnsayo("asignacion", "asignar");
+    await comprobarSobre(200);
+    const eventosSobre = JSON.parse(administrarEnsayo("sobre", "auditoria"));
+    for (const motivo of [
+      "sobre_publicado",
+      "autenticacion_gcm_fallida",
+      "discrepancia_sha256",
+      "restaurar",
+      "evaluacion_no_asignada",
+      "original_verificado",
+      "fuera_de_horario",
+    ]) {
+      assert.equal(
+        eventosSobre.some((e) => e.motivo === motivo),
+        true,
+        motivo,
+      );
+    }
+    const anonimo = await navegador.newContext();
+    assert.equal((await anonimo.request.get(rutaDocumento)).status(), 401);
+    await anonimo.close();
+    await pagina.getByRole("button", { name: "Cerrar sesión" }).click();
+    await pagina.waitForURL("**/acceso");
+    resumen.push(
+      "Etapa 3 real: carga docente por navegador, cifrado privado, descarga byte a byte a 08:00, 403 a 07:59:59/sin asignación, 401 anónimo, reinicio conserva claves/sesión/documento; GCM dañado y SHA discrepante → 409 sin archivo; restauración → original idéntico; auditoría y escritorio/móvil axe A/AA correctos",
+    );
     resumen.push(
       "Docente: contraseña insuficiente, TOTP real aceptado, panel privado y salida",
     );
@@ -451,7 +618,7 @@ networks:
     throw error;
   } finally {
     if (navegador) await navegador.close();
-    docker(["down"]);
+    docker(["down", "--volumes"]);
   }
 }
 

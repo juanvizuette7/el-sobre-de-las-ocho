@@ -53,7 +53,7 @@ def test_portada_y_recursos_funcionan_sin_servicios_externos(cliente):
     assert respuesta.status_code == 200
     assert respuesta.headers["content-type"].startswith("text/html")
     assert '<html lang="es">' in respuesta.text
-    assert "La entrega de exámenes aún no está habilitada" in respuesta.text
+    assert "Documentos protegidos. Entrega sujeta a autorización" in respuesta.text
     assert all(nombre in respuesta.text for nombre in ["Portal docente", "Portal estudiante", "Laboratorio de seguridad"])
     assert 'id="recorrido"' not in respuesta.text
     assert "Acceso administrativo pendiente de habilitación" in respuesta.text
@@ -61,7 +61,7 @@ def test_portada_y_recursos_funcionan_sin_servicios_externos(cliente):
     pagina.feed(respuesta.text)
     assert pagina.formularios == 0
     assert not any("laboratorio" in enlace or "admin" in enlace for enlace in pagina.enlaces)
-    # Sin autenticación implementada, no existe ninguna entrada administrativa.
+    # El laboratorio administrativo no dispone de rutas web.
     for ruta_administrativa in ["/laboratorio", "/admin", "/admin/laboratorio"]:
         assert cliente.get(ruta_administrativa).status_code == 404
     for enlace in pagina.enlaces:

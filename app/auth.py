@@ -12,6 +12,7 @@ from app.evaluations import evaluaciones_del_panel
 from app.policy import exigir_rol
 from app.security import leer_secreto, paso_totp, verificar_clave
 from app.sessions import NOMBRE_COOKIE, buscar, crear, excede_limite, fijar_cookie
+from app.storage import bitacora_documentos
 
 router = APIRouter()
 
@@ -170,13 +171,14 @@ async def salir(request: Request):
 
 @router.get("/docente")
 def panel_docente(request: Request, sesion=Depends(exigir_rol("DOCENTE"))):
-    """No habilita publicación ni controles administrativos."""
+    """Programación, publicación protegida y bitácora; sin controles de laboratorio."""
     return pagina(request, "panel.html", sesion=sesion, docente=True,
-                  evaluaciones=evaluaciones_del_panel(request, sesion, docente=True))
+                  evaluaciones=evaluaciones_del_panel(request, sesion, docente=True),
+                  bitacora=bitacora_documentos(request.app.state.config))
 
 
 @router.get("/estudiante")
 def panel_estudiante(request: Request, sesion=Depends(exigir_rol("ESTUDIANTE"))):
-    """Panel privado con asignaciones y decisión de disponibilidad, sin documentos."""
+    """Asignaciones, disponibilidad y enlace de entrega verificado por el servidor."""
     return pagina(request, "panel.html", sesion=sesion, docente=False,
                   evaluaciones=evaluaciones_del_panel(request, sesion, docente=False))

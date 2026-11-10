@@ -13,7 +13,7 @@
       <a class="nav-link" href="#areas">{{ icon('areas') }}<span>Áreas del portal</span></a>
       <a class="nav-link" href="#estado">{{ icon('pulso') }}<span>Estado del servicio</span></a>
     </nav>
-    <div class="sidebar-note"><span class="mini-label">CONDICIONES DE ACCESO</span><p>Identidad, asignación<br>y horario.</p><span>Entrega de documentos pendiente de habilitación.</span></div>
+    <div class="sidebar-note"><span class="mini-label">CONDICIONES DE ACCESO</span><p>Identidad, asignación<br>y horario.</p><span>Entrega con autorización e integridad verificadas.</span></div>
     <div class="sidebar-footer">Universidad Cooperativa<br>de Colombia<span>PROYECTO ACADÉMICO · 2026</span></div>
   </aside>
 
@@ -27,7 +27,7 @@
           <p class="hero-description">La persona correcta. El momento indicado.<br>El documento original.</p>
           <p class="hero-context">Una plataforma de gestión de evaluaciones con condiciones de identidad, autorización, horario e integridad del documento.</p>
           <a class="primary-link" href="#areas">Conocer el portal {{ icon('flecha') }}</a>
-          <div class="hero-footnote">{{ icon('info') }}<span>La entrega de exámenes aún no está habilitada.</span></div>
+          <div class="hero-footnote">{{ icon('info') }}<span>Documentos protegidos. Entrega sujeta a autorización.</span></div>
         </div>
         <figure class="envelope-scene">
           <div class="scene-grid" aria-hidden="true"></div>
@@ -37,17 +37,17 @@
             <div class="envelope-back"></div><div class="envelope-front"></div><div class="envelope-fold"></div>
             <div class="seal"><span>EL SOBRE</span><b>08</b><span>DE LAS OCHO</span></div>
           </div>
-          <div class="scene-bottom"><span class="scene-mark" aria-hidden="true">08:00</span><figcaption>El documento correcto.<br><strong>En el momento indicado.</strong><small>Ilustración conceptual · entrega de documentos pendiente</small></figcaption></div>
+          <div class="scene-bottom"><span class="scene-mark" aria-hidden="true">08:00</span><figcaption>El documento correcto.<br><strong>En el momento indicado.</strong><small>Ilustración conceptual del sobre protegido</small></figcaption></div>
         </figure>
       </section>
 
-      <section class="build-note" aria-label="Disponibilidad de funciones"><span class="build-badge">ACCESO DISPONIBLE</span><p>Acceso privado para docentes y estudiantes. <span>Consulta de asignaciones y apertura; entrega de documentos pendiente.</span></p><a href="/acceso">Iniciar sesión {{ icon('flecha') }}</a></section>
+      <section class="build-note" aria-label="Disponibilidad de funciones"><span class="build-badge">ACCESO DISPONIBLE</span><p>Acceso privado para docentes y estudiantes. <span>Publicación protegida y descarga con verificación de integridad.</span></p><a href="/acceso">Iniciar sesión {{ icon('flecha') }}</a></section>
 
       <section class="areas section-anchor" id="areas" aria-labelledby="areas-title">
-        <div class="section-heading"><div><p class="eyebrow">FUNCIONALIDADES PREVISTAS</p><h2 id="areas-title">Áreas de la plataforma.</h2></div><span class="section-index">EL PORTAL</span></div>
+        <div class="section-heading"><div><p class="eyebrow">FUNCIONALIDADES DEL PORTAL</p><h2 id="areas-title">Áreas de la plataforma.</h2></div><span class="section-index">EL PORTAL</span></div>
         <div class="area-grid">
-          {{ area('01', 'Portal docente', 'docente', 'Panel privado con verificación en dos pasos y consulta de programación.', ['Segundo factor obligatorio', 'Evaluaciones y asignación registradas', 'Publicación de documentos pendiente'], enlace='/acceso') }}
-          {{ area('02', 'Portal estudiante', 'estudiante', 'Consulta de evaluaciones asignadas y condiciones de apertura.', ['Acceso según rol y asignación', 'Disponibilidad verificada en el servidor', 'Descarga de documentos pendiente'], enlace='/acceso') }}
+          {{ area('01', 'Portal docente', 'docente', 'Publicación protegida de evaluaciones con verificación en dos pasos.', ['Segundo factor obligatorio', 'Evaluaciones y asignación registradas', 'Documentos cifrados y actividad registrada'], enlace='/acceso') }}
+          {{ area('02', 'Portal estudiante', 'estudiante', 'Consulta de evaluaciones asignadas y condiciones de apertura.', ['Acceso según rol y asignación', 'Disponibilidad verificada en el servidor', 'Entrega del documento original verificado'], enlace='/acceso') }}
           {{ area('03', 'Laboratorio de seguridad', 'laboratorio', 'Área prevista para la administración de controles y ensayos en un entorno aislado.', ['Uso exclusivo de administración', 'Operación sujeta a autorización', 'Sin acceso operativo en esta versión'], 'Acceso administrativo pendiente de habilitación') }}
         </div>
       </section>

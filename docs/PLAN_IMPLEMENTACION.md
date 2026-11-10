@@ -1,5 +1,19 @@
 # Plan de implementación
 
+## Cierre de etapa 3
+
+**Sellar implementada y verificada:** carga docente TXT/MFA/CSRF, AES-256-GCM, RSA-3072-OAEP-SHA256, referencia SHA-256 y descarga con la política existente. Original idéntico, dos alteraciones reales y restauración. Se conservan cuentas, TOTP, sesiones, asignación y reloj. **120 pruebas aprobadas** y recorrido real Nginx/navegador con reinicio y escritorio/móvil. [Evidencia 3](evidencias/etapa-03.md).
+
+| Tarea 3 | Entregable real |
+|---|---|
+| 3.1 | `app/crypto.py`, privada persistente en volumen privado |
+| 3.2–3.3 | `app/storage.py`, tabla aditiva `documentos`, sobres privados y escritura atómica |
+| 3.4 | `app/documents.py`, política 2B y verificación previa a emitir bytes |
+| 3.5 | `app.demo sobre alterar-gcm/alterar-hash`, exclusivamente local |
+| 3.6 | Formularios/estado integrados, `sobre restaurar`, `tests/test_crypto.py`, `tests/test_documents.py`, recorrido de navegador ampliado |
+
+La siguiente etapa es 4 y requiere otra petición: TLS, tráfico y maquetas de red. No se ha iniciado. Las tablas originales siguientes conservan la planificación histórica, no declaran que criptografía siga pendiente.
+
 **Estado: etapas 1, 2A y 2B implementadas; etapas posteriores pendientes.** Fuente principal: `docs/planificacion/Fase_3_Diseno_El_sobre_de_las_ocho.pdf` (F3), especialmente pp. 5–7. Se conservan nombres, orden y estimaciones de sus seis etapas. Evidencias: [etapa 1](evidencias/etapa-01.md), [2A](evidencias/etapa-02a.md) y [2B](evidencias/etapa-02b.md). P1 conserva cobertura parcial de identidad; P2 verifica el límite sin archivo; P3–P10 pendientes.
 
 El alcance actual incorpora 2A (identidad) y 2B (atributos y horario de metadatos), sin ejecutar etapa 3. Las rutas iniciales son propuestas en ARQUITECTURA; README e IDENTIDAD_ACCESO recogen las existentes. Las fuentes docentes y cobertura están en MATRIZ_CLASES. El seguimiento de seis etapas permanece documental.

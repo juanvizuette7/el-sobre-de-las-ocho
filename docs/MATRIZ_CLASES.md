@@ -1,5 +1,22 @@
 # Matriz de clases, aplicación y evidencia
 
+## Etapa 3: cobertura real de criptografía y entrega
+
+Estado vigente: etapas 1, 2A, 2B y 3 implementadas. P1–P3 verificados en la aplicación local; P4–P10 pendientes. Las tablas de planificación se conservan más abajo como antecedente. Se releyeron las siete páginas de F3 y las páginas citadas de C1, sin modificar originales.
+
+| Concepto / fuente concreta | Implementación y prueba observada | Modalidad / límite |
+|---|---|---|
+| Simetría/confidencialidad, C1 p. 7 y pp. 9–11; F3 p. 3 | `crypto.cifrar`, AES-256-GCM; ciphertext sin original, recuperación idéntica, claves distintas y tag/ciphertext alterados rechazados | Real. C1 usa AES-CBC/OpenSSL; GCM es decisión del proyecto |
+| Pública/privada, C1 p. 7; F3 p. 3 | RSA-3072-OAEP-SHA256 envuelve AES; otra privada falla; reinicio real conserva documento | Real. No es firma digital ni KMS |
+| Hash/integridad, C1 pp. 7, 12–13; F3 pp. 3, 6 | SHA-256 original persistido; copia con GCM válido y otro texto recibe 409 por hash; restauración recupera original | Real. C1 muestra MD5; SHA-256 es decisión F3/proyecto |
+| AAA/MFA, C4 pp. 4–5; F3 pp. 1, 3, 6 | Publicación tras TOTP, CSRF/origen, auditoría con cuenta/recurso y dos tiempos; subida anónima 401, estudiante 403, docente sin MFA 401 | Real. HTTP local sin TLS todavía |
+| RBAC/ABAC/mínimo privilegio, C4 pp. 6–7, 15; F3 p. 3 | `documents.resolver_documento` reutiliza política: 07:59:59 → 403; 08:00 → 200 byte a byte; sin asignación → 403; anónimo → 401 | Real; no se afirma Zero Trust empresarial |
+| Referencia/repetición, F3 pp. 2–3, 6–7 | Copias privadas, AAD, CLI local; GCM y SHA distinguibles, referencia conservada y restauración 200; auditoría fallida impide entrega | Real. Administrador de Docker/volumen fuera del modelo de protección |
+
+Resultados: [etapa-03.md](evidencias/etapa-03.md), **120 pruebas** y recorrido real de carga/reinicio/entrega, capturas y axe A/AA en 1440/390. Comandos y límites en [CRIPTOGRAFIA_SOBRE.md](CRIPTOGRAFIA_SOBRE.md). No acredita Wireshark, Packet Tracer, NAC, SQLi, DoS ni DevSecOps.
+
+## Registro histórico y planificación inicial
+
 **Estado global: etapas 1, 2A y 2B implementadas; P1 tiene cobertura parcial de identidad, P2 acredita el límite horario sin archivo; P3–P10 siguen pendientes.** La modalidad «Real prevista» conserva su carácter futuro donde se indica. Autenticación, MFA, sesiones, RBAC y auditoría de identidad ya existen; asignaciones y horario de metadatos también existen; cifrado y laboratorios no están implementados. Resultados en [evidencia 2A](evidencias/etapa-02a.md); arquitectura vigente en [ARQUITECTURA.md](ARQUITECTURA.md).
 
 ## Clase 4: cobertura de etapa 2B
