@@ -14,13 +14,13 @@
 </svg>
 {%- endmacro %}
 
-{% macro area(numero, nombre, simbolo, descripcion, tareas, nota='Funcionalidad pendiente de habilitación') -%}
+{% macro area(numero, nombre, simbolo, descripcion, tareas, nota='Funcionalidad pendiente de habilitación', enlace=None) -%}
 <article class="area-card">
-  <div class="card-top"><span class="area-icon">{{ icon(simbolo) }}</span><span class="pending">Pendiente</span></div>
+  <div class="card-top"><span class="area-icon">{{ icon(simbolo) }}</span><span class="pending">{{ 'Acceso disponible' if enlace else 'Pendiente' }}</span></div>
   <p class="card-number">ÁREA {{ numero }}</p>
   <h3>{{ nombre }}</h3>
   <p>{{ descripcion }}</p>
   <ul>{% for tarea in tareas %}<li>{{ tarea }}</li>{% endfor %}</ul>
-  <div class="card-bottom">{{ nota }}</div>
+  <div class="card-bottom">{% if enlace %}<a class="text-link" href="{{ enlace }}">Iniciar sesión {{ icon('flecha') }}</a>{% else %}{{ nota }}{% endif %}</div>
 </article>
 {%- endmacro %}

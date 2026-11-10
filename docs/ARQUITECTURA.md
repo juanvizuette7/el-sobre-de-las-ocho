@@ -1,14 +1,20 @@
 # Arquitectura prevista
 
-**Estado: etapa 1 implementada; las funciones del examen y etapas 2–6 siguen siendo diseño.** F3 = `docs/planificacion/Fase_3_Diseno_El_sobre_de_las_ocho.pdf`, páginas físicas. Requisitos y respuestas HTTP: [RESUMEN_PROYECTO.md](RESUMEN_PROYECTO.md). Fuentes docentes: [MATRIZ_CLASES.md](MATRIZ_CLASES.md). Resultados observados: [evidencia de etapa 1](evidencias/etapa-01.md).
+**Estado: etapas 1 y 2A implementadas; 2B y protección/entrega de exámenes pendientes.** F3 = `docs/planificacion/Fase_3_Diseno_El_sobre_de_las_ocho.pdf`, páginas físicas. Requisitos y respuestas HTTP: [RESUMEN_PROYECTO.md](RESUMEN_PROYECTO.md). Fuentes docentes: [MATRIZ_CLASES.md](MATRIZ_CLASES.md). Resultados: [etapa 1](evidencias/etapa-01.md) y [etapa 2A](evidencias/etapa-02a.md).
+
+## Identidad implementada en 2A
+
+La especificación operativa y de seguridad vigente está en [IDENTIDAD_ACCESO.md](IDENTIDAD_ACCESO.md): SQLite en volumen privado `identidad`, Argon2id con sal, sesiones de servidor y rotación, desafío TOTP, RBAC, CSRF y auditoría. `app/config.py`, `db.py`, `security.py`, `sessions.py`, `auth.py`, `policy.py`, `audit.py` y `manage.py` ya existen. No se incorpora otro servicio Compose ni se publica Python. Solo `/data` añade almacenamiento escribible persistente a la aplicación; Nginx no lo monta. La preparación ABAC consiste en una política modular de servidor: no existen todavía sus atributos de asignación o apertura.
+
+Las reglas de cifrado, descarga y tiempo de las secciones siguientes siguen siendo diseño futuro. La contraseña usa Argon2id en lugar de la propuesta inicial scrypt; ambos cubren derivación y sal, y la implementación concreta está probada. Tiempo de identidad: reloj real, independiente del futuro reloj didáctico. El secreto TOTP se conserva como archivo privado 0600, no cifrado en reposo; la protección no cubre al administrador del portátil/Docker.
 
 ## Implementación actual de etapa 1
 
 La implementación utiliza FastAPI + Uvicorn (ASGI), Jinja2 y `http://127.0.0.1:8080`, conforme a la especificación de etapa 1. Los requisitos centrales de F3 se mantienen. HTTPS se reserva para la etapa 4; el diagrama y las reglas del examen de abajo describen el **objetivo futuro**, todavía pendiente de implementación.
 
-La interfaz presenta funcionalidades de producto: portal docente, portal estudiante y referencia informativa a un laboratorio administrativo no habilitado. No existen rutas ni controles de laboratorio y no se implementa todavía autenticación. Las seis etapas de construcción se documentan exclusivamente fuera de la interfaz. El ajuste de presentación conserva la ilustración, la paleta, los componentes y la arquitectura.
+La interfaz conserva el producto y su identidad visual, añade acceso y paneles privados, y mantiene el laboratorio administrativo sin rutas ni controles. El seguimiento de construcción permanece fuera de las pantallas.
 
-Rutas actuales: `GET /` renderiza la portada; `GET /health` devuelve `status`, `servicio` y `etapa`; `/static` sirve únicamente recursos de interfaz. Documentación interactiva API desactivada para no depender de CDN. No hay login, examen, SQLite creado, claves o estado de sesión; no se requieren secretos ni `.env` todavía. Tampoco se crean módulos vacíos de autenticación/configuración por anticipado.
+Rutas públicas conservadas: `GET /`, `GET /health`, `/static`. Nuevas rutas de identidad: GET/POST `/acceso`, GET/POST `/acceso/totp`, POST `/salir`; paneles GET `/docente` y `/estudiante`, protegidos en servidor. Documentación interactiva API desactivada. No hay todavía rutas de publicación, asignación, horario, descarga o administración de laboratorio. El campo `etapa: 1` de salud se conserva como contrato heredado de infraestructura; no expresa cobertura funcional.
 
 ```text
 Windows/navegador → 127.0.0.1:8080 → Nginx:8080 → app:8000 → FastAPI/Uvicorn
@@ -48,7 +54,7 @@ La aplicación normal tiene **dos servicios Compose**, Nginx y Python; SQLite es
 | Proxy | Nginx, HTTPS, cabeceras y cuotas. | F3 pp. 2–3; TLS/cabeceras en etapa 4 y cuota en 5. |
 | Persistencia | SQLite, archivo local en volumen; consultas parametrizadas y transacciones. | SQLite en F3 pp. 2–3; detalles propuestos. |
 | Criptografía | Biblioteca `cryptography` propuesta; AES-GCM, RSA-OAEP y SHA-256. | Variantes exigidas por petición y previstas por F3 p. 3. No criptografía artesanal. |
-| Contraseña | Propuesta scrypt con sal aleatoria individual y parámetros guardados; evaluar soporte/coste en el portátil. | F3 p. 3 exige derivación y sal, sin imponer algoritmo. |
+| Contraseña | Argon2id con sal aleatoria y parámetros embebidos; implementación 2A. | F3 p. 3 exige derivación y sal, sin imponer algoritmo. |
 | MFA | TOTP local; secreto distinto de contraseñas, clave AES y clave RSA. | F3 p. 3. Autenticador local separado de la pantalla de acceso. |
 | Ensayo | Utilidad de terminal ejecutada dentro del servicio, sin endpoint administrativo público. | Control local en F3 pp. 1–3. |
 | Herramientas | Git, OpenSSL, Wireshark, Packet Tracer, Bandit, Trivy, Nmap/NSE y ApacheBench. | F3 pp. 2–4. No deben ser servicios permanentes del portal. |
@@ -129,7 +135,7 @@ P9 exige como máximo 100 peticiones, concurrencia 5, cuota de 5 r/s/IP y margen
 
 ## Mapa de archivos futuros
 
-El mapa combina archivos **existentes de etapa 1** (Compose, Dockerfile, requisitos, Nginx, `app/main.py`, plantillas/estáticos y guía Windows) con módulos futuros. Autenticación, política, reloj, criptografía, almacenamiento, auditoría y laboratorios **todavía no existen**. El mapa actual completo está en README; sus nombres prevalecen sobre las propuestas de este diseño.
+El mapa inicial se complementa con IDENTIDAD_ACCESO y README. Autenticación, configuración, política RBAC, SQLite y auditoría de identidad ya están implementados. Reloj didáctico, criptografía del examen, almacén de sobres y laboratorios siguen pendientes.
 
 | Ruta propuesta | Responsabilidad |
 |---|---|
@@ -151,4 +157,4 @@ La UI propuesta usa el sobre sellado como identidad visual, jerarquía clara, ti
 
 ## Decisiones pendientes acotadas
 
-Etapa 1 resuelve framework/ASGI, versiones, puerto, recursos y diseño inicial. En etapa 2 siguen pendientes política TOTP, caducidad y protección de secretos. En etapa 3: formato del sobre, atomicidad y errores no fijados por F3. En etapa 4: certificado confiable y soporte concreto de Packet Tracer. En etapa 5: CVE corregible, umbrales de Bandit y versión/base Trivy. No se autoriza iniciar otra etapa.
+Etapas 1 y 2A resuelven base local, identidad, TOTP, caducidad y permisos por rol. 2B mantiene pendientes asignaciones y horario. Etapa 3: formato del sobre, atomicidad y errores no fijados por F3. Etapa 4: TLS y soporte de Packet Tracer. Etapa 5: CVE corregible y herramientas de análisis. No se inicia 2B en esta entrega.

@@ -83,6 +83,8 @@ build/
 dist/
 node_modules/
 .qa/
+# Material privado de aprendizaje (ya rastreado: no se retira automáticamente).
+/docs/GUIA_ESTUDIANTE.md
 
 # Temporales de edición y Windows.
 .idea/

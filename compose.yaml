@@ -10,6 +10,10 @@ services:
     networks: [portal]
     read_only: true
     tmpfs: [/tmp]
+    environment:
+      PORTAL_ORIGIN: http://127.0.0.1:8080
+    volumes:
+      - identidad:/data
     cap_drop: [ALL]
     security_opt: [no-new-privileges:true]
     mem_limit: 256m
@@ -56,3 +60,6 @@ networks:
     driver: bridge
   portal:
     internal: true
+
+volumes:
+  identidad:

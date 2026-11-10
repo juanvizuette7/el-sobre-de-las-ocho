@@ -60,7 +60,7 @@ def verificar() -> None:
         try:
             urllib.request.urlopen(URL_PORTAL + ruta, timeout=5)
         except urllib.error.HTTPError as error:
-            comprobar(error.code == 404, f"ruta no publicada {ruta}")
+            comprobar(error.code == (401 if ruta == "/docente" else 404), f"ruta protegida o no publicada {ruta}")
         else:
             raise RuntimeError(f"Ruta inesperadamente accesible: {ruta}")
 

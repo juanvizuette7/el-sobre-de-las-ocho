@@ -1,6 +1,6 @@
 # El sobre de las ocho: resumen del proyecto
 
-Análisis inicial: 9 de noviembre de 2026. **Estado actualizado: portal mínimo de etapa 1 implementado; etapas 2–6 y laboratorios pendientes.** La entrega inicial fue documental; la construcción autorizada posterior añade FastAPI, Nginx, Compose, portada y pruebas, sin implementar todavía el examen protegido. Véanse [README](../README.md) y [evidencia de etapa 1](evidencias/etapa-01.md).
+Análisis inicial: 9 de noviembre de 2026. **Estado actualizado: etapas 1 y 2A implementadas; 2B, examen protegido y laboratorios pendientes.** La plataforma incluye SQLite, Argon2id, sesiones privadas, TOTP docente, RBAC y auditoría de identidad. Los requisitos de publicación, asignación, horario y cifrado permanecen sin implementar. Referencias: [README](../README.md), [IDENTIDAD_ACCESO](IDENTIDAD_ACCESO.md) y [evidencia 2A](evidencias/etapa-02a.md).
 
 ## Especificación y fuentes
 
@@ -71,10 +71,10 @@ Todos los resultados siguientes son **esperados, no observados**. Fuente: F3 pp.
 
 ## Estado, incertidumbres y lectura posterior
 
-No se ejecutaron P1–P10: existe la portada, pero aún no el examen protegido. Docker, Compose, puertos, recursos y comunicación real Nginx–FastAPI se verifican en la etapa 1; inventario y resultados están en GUIA_WINDOWS y la ficha de evidencia. Certificados, herramientas de laboratorios y CVE siguen pendientes. El flujo local DevSecOps y el límite de carga de F3 prevalecen sobre los ejemplos docentes más amplios.
+P1 tiene verificación parcial de identidad: credenciales, TOTP y denegación de rutas privadas por rol; su publicación/descarga siguen ausentes. P2–P10 no están ejecutados. La comunicación Nginx–FastAPI y portada se conservan verificadas. Certificados, herramientas de laboratorios y CVE siguen pendientes. El flujo local DevSecOps y el límite de carga de F3 prevalecen sobre ejemplos docentes más amplios.
 
 La Fase 3 estima 30–40 h, aunque sus seis intervalos suman 30–40 h para construcción y ensayo; el informe extenso y diapositivas corresponden a la **fase académica 5**, diferente de la etapa de construcción 5 (F3 p. 5).
 
 Los PDF locales ya están rastreados por Git. `.gitignore` no los retira del índice ni del historial; esta tarea no cambia el índice, borra originales ni publica archivos. Antes de compartir el repositorio será necesario resolver la autorización de distribución y la permanencia de esos materiales.
 
-Referencias: [ARQUITECTURA.md](ARQUITECTURA.md), [PLAN_IMPLEMENTACION.md](PLAN_IMPLEMENTACION.md) y [GUIA_ESTUDIANTE.md](GUIA_ESTUDIANTE.md). La etapa 1 utiliza FastAPI y HTTP local en 8080. La interfaz presenta áreas de producto y estado del servicio; el seguimiento de las seis etapas permanece en Markdown. El laboratorio administrativo no dispone de ruta ni controles operativos. La etapa 2 continúa pendiente de autorización.
+Referencias: [ARQUITECTURA.md](ARQUITECTURA.md), [PLAN_IMPLEMENTACION.md](PLAN_IMPLEMENTACION.md) y guía privada de aprendizaje. FastAPI y HTTP local en 8080 se conservan; las cookies se preparan para Secure en HTTPS futuro. La interfaz ofrece acceso y paneles privados, con evaluación y laboratorio todavía pendientes. La etapa 2B requiere autorización.

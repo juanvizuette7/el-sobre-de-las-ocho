@@ -1,0 +1,5 @@
+{% extends 'privado_base.html' %}
+{% block title %}Acceso no disponible · El sobre de las ocho{% endblock %}
+{% block identidad %}
+<section class="identity-card error-card" aria-labelledby="error-title"><p class="eyebrow">SOLICITUD NO COMPLETADA · {{ codigo }}</p><h1 id="error-title">Acceso no disponible.</h1><p role="alert">{{ mensaje }}</p><a class="primary-link" href="/acceso">Ir al acceso {{ icon('flecha') }}</a></section>
+{% endblock %}

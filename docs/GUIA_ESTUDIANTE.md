@@ -1,6 +1,65 @@
 # Guía del estudiante: entender el sobre
 
-**La etapa 1 ya tiene un portal real; el examen protegido sigue en diseño.** La primera parte explica lo implementado. Las secciones sobre cifrado, cuentas, reloj y laboratorios describen etapas futuras, todavía pendientes. La especificación principal es `docs/planificacion/Fase_3_Diseno_El_sobre_de_las_ocho.pdf` (F3). Para relacionar cada explicación con la clase y página original, consulta [MATRIZ_CLASES.md](MATRIZ_CLASES.md).
+**Material privado de aprendizaje. Etapas 1 y 2A implementadas; examen protegido pendiente.** Cuentas, sesiones, TOTP y permisos por rol ya funcionan; asignaciones, horario y cifrado todavía no. La especificación principal es `docs/planificacion/Fase_3_Diseno_El_sobre_de_las_ocho.pdf` (F3). Para relacionar cada concepto con la clase y página original, consulta MATRIZ_CLASES. Esta guía no forma parte de las pantallas del producto ni de una entrega pública; estar ignorada no retira la copia que ya estaba versionada en Git.
+
+## Identidad 2A en palabras sencillas
+
+**Iniciar sesión** es presentar pruebas de quién eres y recibir una sesión que el servidor reconoce. Primero escribes usuario y contraseña. El estudiante entra a su panel; el docente debe demostrar además que tiene el secreto de su autenticador mediante un código TOTP. No seleccionas el rol en un formulario: ya está asignado en SQLite.
+
+**Autenticación** es comprobar identidad. **Autorización** es decidir si esa identidad puede realizar una acción. Por eso un estudiante que inició sesión correctamente obtiene 403 al pedir `/docente`: está identificado, pero no tiene ese permiso. Sin sesión completa se recibe 401. **Auditoría** registra la decisión sin guardar lo que escribiste en contraseña o código. Juntas son las tres partes de AAA de clase 4.
+
+Una **base de datos** organiza información para consultarla y cambiarla de forma controlada. Aquí SQLite es un archivo en el volumen privado del contenedor Python; no es un tercer servicio Docker. Las tablas guardan cuentas/roles, sesiones, límites de intentos y eventos. Las consultas con parámetros mantienen separados los datos y las instrucciones SQL; no estamos realizando un taller de inyección.
+
+La contraseña no se guarda como texto. Argon2id calcula un **derivado** con una sal aleatoria. El servidor verifica la contraseña contra ese derivado. Dos derivaciones de la misma contraseña dan valores distintos gracias a la sal. Argon2id consume tiempo y memoria para dificultar probar contraseñas; una sal no es otro factor ni una clave secreta que debas memorizar.
+
+Una **sesión** es la continuidad de un acceso. El navegador guarda una cookie con un identificador aleatorio; el servidor conserva su huella, vencimiento y relación con la cuenta. La cookie no dice «soy docente». Cambiarla por un texto inventado no crea una sesión válida. HttpOnly impide leerla desde JavaScript de la página; SameSite limita envíos entre sitios. Ninguna de esas dos opciones cifra HTTP.
+
+Hay tres estados: sesión anónima del formulario, desafío MFA y sesión completa. La contraseña docente solo da un desafío. El servidor cambia identificador y token CSRF al pasar de estado, para que el identificador viejo no se convierta en una puerta reutilizable. Las sesiones completas duran 30 minutos; cerrar sesión también elimina el registro del servidor. Borrar solo la cookie no sería una revocación suficiente.
+
+**MFA** exige factores de categorías distintas: contraseña (algo que sabes) y autenticador con secreto (algo que tienes). **TOTP** transforma ese secreto y el tiempo real en un código de seis dígitos. Cambia cada 30 segundos. La aplicación acepta un pequeño desfase de reloj, pero registra el paso aceptado para que no se vuelva a utilizar. El servidor no muestra códigos ni el secreto por web. En una demostración de un solo computador el aislamiento del segundo factor es didáctico; el administrador local puede acceder al volumen. No equivale a un token hardware independiente de un equipo comprometido.
+
+El alta se realiza en una terminal privada con `docker compose exec app python -m app.manage inicializar`. Las contraseñas se leen sin eco. El secreto/URI aparece para configurarlo una vez en un autenticador local compatible; no lo captures ni subas a Git. El comando pide un código para confirmar el enrolamiento y consume ese paso; espera al siguiente antes del primer login. No pegues contraseñas o secretos en este chat. Los pasos técnicos completos están en IDENTIDAD_ACCESO.
+
+**RBAC** aplica permisos según rol. `app/policy.py` comprueba sesión completa, cuenta activa, rol y prueba MFA. El estudiante no puede hacerse docente cambiando parámetros o la URL. **ABAC** añadirá condiciones del recurso: qué examen te asignaron y si ya llegó su apertura. Eso no existe todavía; la política está separada para añadirlo en 2B sin quitar RBAC. Que exista esta separación no significa que ya se apliquen asignaciones u horarios.
+
+**CSRF** es intentar que tu navegador envíe una acción usando tu sesión desde otra página. Nuestros formularios requieren un token ligado a la sesión y un origen exactamente permitido. También protegemos iniciar sesión y salir. SameSite ayuda, pero no reemplaza esa comprobación. Nginx usa `Referrer-Policy: same-origin`: el ajuste permitió que los POST legítimos conservaran su origen, sin aceptar valores nulos o ajenos.
+
+Los límites evitan probar códigos sin fin: cinco intentos de contraseña por cuenta y cinco de TOTP por cuenta en cinco minutos. Cambiar cookie no elimina el contador. Existe también un límite agregado de 30 intentos de contraseña visto desde el proxy. Cuenta intentos válidos e inválidos; al ensayar muchas veces puedes tener que esperar. No cambies los controles para fabricar un resultado favorable.
+
+### Dónde está cada control
+
+| Control | Archivo |
+|---|---|
+| Contraseña y código temporal | `app/security.py` |
+| Login, MFA, CSRF y logout | `app/auth.py` |
+| Tokens, rotación y límites | `app/sessions.py` |
+| Permisos por rol | `app/policy.py` |
+| Datos y transacciones | `app/db.py` |
+| Qué decisión ocurrió | `app/audit.py` |
+| Alta y revocación de todas las sesiones | `app/manage.py` |
+| Duraciones, origen y Secure futuro | `app/config.py` |
+| Casos automatizados | `tests/test_auth.py` |
+
+### Cómo demostrarlo y responder preguntas
+
+Usa dos sesiones de navegador. Muestra el panel estudiante y luego escribe la URL docente: debe responder 403. En la otra sesión entra como docente, detente antes del código e intenta el panel: 401. Completa TOTP y muestra el panel autorizado. Cierra sesión y solicita otra vez el panel: 401. Conserva respuestas y fichas sin capturar contraseñas, OTP o cookies. No necesitas esperar a las 08:00: todavía no estamos probando horario.
+
+La suite de pytest usa claves aleatorias y bases temporales; no opera sobre tus cuentas. El script de navegador de identidad levanta otro proyecto temporal en 8081 con datos en memoria y lo retira al terminar. Eso permite repetir sin restablecer tus contraseñas o el secreto. No se usa ese autenticador programático de prueba para entrar al portal real.
+
+| Pregunta posible | Respuesta correcta |
+|---|---|
+| ¿Por qué no basta ocultar el enlace docente? | Porque se puede escribir la URL. El backend comprueba el permiso en cada solicitud. |
+| ¿Qué tiene la cookie? | Un identificador aleatorio; la cuenta, el rol y el vencimiento se verifican en servidor. |
+| ¿La contraseña docente ya autoriza? | No: solo crea un desafío de cinco minutos, sin permisos del panel. |
+| ¿El código TOTP se puede repetir? | El paso aceptado se consume en una transacción; otro desafío no puede reutilizarlo. |
+| ¿Ya hay ABAC? | No. RBAC está probado; asignaciones y horario son trabajo pendiente de 2B. |
+| ¿La sesión es segura porque dice HttpOnly? | Ese atributo reduce acceso desde scripts. Aún falta HTTPS para proteger el tránsito. |
+| ¿Por qué no has cifrado el secreto TOTP en disco? | Por ahora tiene permisos y volumen privados. El administrador del equipo queda fuera de esa protección; no afirmo cifrado de reposo. |
+| ¿Zero Trust está completo? | Aplico verificación explícita y mínimo privilegio en estas rutas; no desplegué una arquitectura empresarial completa. |
+| ¿Se puede reiniciar sin perder usuarios? | Sí, el volumen persiste. No se debe usar `down -v` como reinicio. |
+| ¿Qué ocurre si pierdes el autenticador? | No hay reenrolamiento o recuperación en 2A; no lo resuelvo borrando el volumen ni mostrando códigos en la web. |
+
+Las palabras del producto describen funciones y estados. Estas explicaciones de aprendizaje se mantienen en esta guía privada.
 
 ## Lo que ya puedes abrir
 
@@ -46,7 +105,7 @@ Hay dos redes: `entrada`, a la que pertenece Nginx para publicar la dirección l
 | `scripts/verificar_etapa1.py` | Comprobar contenedores y HTTP reales desde Windows |
 | `scripts/verificar_interfaz.cjs` | Revisión opcional de navegador; herramientas fuera de la aplicación |
 
-No hay todavía `auth.py`, `crypto.py`, una base SQLite ni `.env`: se añadirán cuando la etapa correspondiente lo necesite. La base actual no procesa credenciales y no necesita secretos.
+Ahora existen `auth.py`, `config.py`, SQLite y los módulos de identidad indicados arriba. `crypto.py` para el examen sigue pendiente. No se usa `.env` para contraseñas; la inicialización interactiva guarda derivados y un secreto TOTP privado en el volumen.
 
 ## Cómo demostrar esta primera etapa
 
@@ -188,4 +247,4 @@ Ejemplo **sin ejecutar**: clase 4, estudiante asignado, original intacto, reloj 
 
 Lee el [resumen](RESUMEN_PROYECTO.md) para conocer requisitos y P1–P10; la [arquitectura](ARQUITECTURA.md) para ver responsabilidades y archivos propuestos; la [matriz](MATRIZ_CLASES.md) para preparar la explicación de cada clase; y el [plan](PLAN_IMPLEMENTACION.md) para construir en seis etapas.
 
-La [GUIA_WINDOWS.md](GUIA_WINDOWS.md) ya contiene el entorno observado y los comandos de esta etapa. La [ficha de resultados](evidencias/etapa-01.md) registra ejecuciones reales e incidencias corregidas. Restaurar un examen, identificar usuarios y cumplir P1–P10 siguen pendientes; no se avanza a etapa 2 sin autorización.
+La [GUIA_WINDOWS.md](GUIA_WINDOWS.md) contiene los comandos operativos; [IDENTIDAD_ACCESO.md](IDENTIDAD_ACCESO.md) detalla alta y sesiones. Identificar usuarios ya funciona en 2A. La [ficha 2A](evidencias/etapa-02a.md) registra sus pruebas; restaurar un examen y cumplir íntegramente P1–P10 siguen pendientes. No se avanza a 2B sin autorización.

@@ -8,6 +8,12 @@ anyio==4.16.0
     # via
     #   httpx2
     #   starlette
+argon2-cffi==25.1.0
+    # via -r requirements.in
+argon2-cffi-bindings==26.1.0
+    # via argon2-cffi
+cffi==2.1.1
+    # via argon2-cffi-bindings
 click==8.5.1
     # via uvicorn
 colorama==0.4.6
@@ -38,14 +44,20 @@ packaging==26.3
     # via pytest
 pluggy==1.7.0
     # via pytest
+pycparser==3.12
+    # via cffi
 pydantic==2.14.3
     # via fastapi
 pydantic-core==2.50.4
     # via pydantic
 pygments==2.21.0
     # via pytest
+pyotp==2.10.0
+    # via -r requirements.in
 pytest==9.2.0
     # via -r requirements-dev.in
+python-multipart==0.0.33
+    # via -r requirements.in
 starlette==1.10.0
     # via fastapi
 truststore==0.10.5

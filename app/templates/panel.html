@@ -1,0 +1,14 @@
+{% extends 'privado_base.html' %}
+{% block title %}Portal {{ 'docente' if docente else 'estudiante' }} · El sobre de las ocho{% endblock %}
+{% block identidad %}
+<section class="panel-heading" aria-labelledby="panel-title">
+  <div><p class="eyebrow">ÁREA PRIVADA · {{ sesion.rol }}</p><h1 id="panel-title">Portal <em>{{ 'docente' if docente else 'estudiante' }}.</em></h1><p>Cuenta: <strong>{{ sesion.nombre }}</strong></p></div>
+  <form method="post" action="/salir" data-auth-form><input type="hidden" name="csrf" value="{{ sesion.csrf }}"><button class="health-button" type="submit">Cerrar sesión</button><p class="form-status" role="status" aria-live="polite"></p></form>
+</section>
+<div class="private-summary"><span class="area-icon">{{ icon('docente' if docente else 'estudiante') }}</span><div><h2>Acceso verificado</h2><p>{{ 'Contraseña y segundo factor validados.' if docente else 'Identidad y rol de estudiante validados.' }} La sesión caduca a los 30 minutos.</p></div></div>
+<section class="identity-card panel-empty" aria-labelledby="pending-title">
+  <p class="eyebrow">EVALUACIONES</p><h2 id="pending-title">{{ 'Publicación pendiente de habilitación' if docente else 'Consulta de evaluaciones pendiente de habilitación' }}</h2>
+  <p>{{ 'La publicación, asignación y apertura de evaluaciones aún no están disponibles.' if docente else 'Las asignaciones y la descarga de documentos aún no están disponibles.' }}</p>
+  <span class="pending">Pendiente</span>
+</section>
+{% endblock %}

@@ -41,13 +41,13 @@
         </figure>
       </section>
 
-      <section class="build-note" aria-label="Disponibilidad de funciones"><span class="build-badge">VERSIÓN INICIAL</span><p>Portal informativo disponible. <span>La autenticación y la gestión de evaluaciones están pendientes de habilitación.</span></p><a href="#estado">Estado del servicio {{ icon('flecha') }}</a></section>
+      <section class="build-note" aria-label="Disponibilidad de funciones"><span class="build-badge">ACCESO DISPONIBLE</span><p>Acceso privado para docentes y estudiantes. <span>La gestión de evaluaciones está pendiente de habilitación.</span></p><a href="/acceso">Iniciar sesión {{ icon('flecha') }}</a></section>
 
       <section class="areas section-anchor" id="areas" aria-labelledby="areas-title">
         <div class="section-heading"><div><p class="eyebrow">FUNCIONALIDADES PREVISTAS</p><h2 id="areas-title">Áreas de la plataforma.</h2></div><span class="section-index">EL PORTAL</span></div>
         <div class="area-grid">
-          {{ area('01', 'Portal docente', 'docente', 'Publicación de evaluaciones y administración de sus condiciones de entrega.', ['Publicación del documento', 'Asignación y apertura', 'Consulta de auditoría']) }}
-          {{ area('02', 'Portal estudiante', 'estudiante', 'Acceso al documento asignado una vez verificadas las condiciones de entrega.', ['Identificación personal', 'Validación de permisos', 'Descarga del original']) }}
+          {{ area('01', 'Portal docente', 'docente', 'Panel privado con verificación en dos pasos. Gestión de evaluaciones pendiente.', ['Inicio de sesión con contraseña', 'Segundo factor obligatorio', 'Publicación pendiente de habilitación'], enlace='/acceso') }}
+          {{ area('02', 'Portal estudiante', 'estudiante', 'Panel privado para la cuenta estudiante. Consulta de evaluaciones pendiente.', ['Inicio de sesión con contraseña', 'Acceso según rol', 'Asignaciones y descargas pendientes'], enlace='/acceso') }}
           {{ area('03', 'Laboratorio de seguridad', 'laboratorio', 'Área prevista para la administración de controles y ensayos en un entorno aislado.', ['Uso exclusivo de administración', 'Operación sujeta a autorización', 'Sin acceso operativo en esta versión'], 'Acceso administrativo pendiente de habilitación') }}
         </div>
       </section>

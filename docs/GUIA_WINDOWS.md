@@ -1,6 +1,18 @@
-# Guía de ejecución en Windows — etapa 1
+# Guía de ejecución en Windows — etapas 1 y 2A
 
 Los comandos de uso y pruebas están completos en [README.md](../README.md). Están escritos para **CMD**, sin variables o sintaxis exclusivas de PowerShell. Abre Docker Desktop con motor Linux antes de ejecutarlos. Internet es necesario para la primera construcción; con imágenes construidas puedes volver a iniciar sin reinstalar.
+
+## Actualización 2A
+
+Acceso y aprovisionamiento: [IDENTIDAD_ACCESO.md](IDENTIDAD_ACCESO.md). Nuevas dependencias fijadas: Argon2-cffi 25.1.0, PyOTP 2.10.0 y python-multipart 0.0.33, incluidas sus transitivas en requirements. Persistencia en volumen `identidad`, privado de Python; no publicar ni copiar su contenido a Git.
+
+```bat
+docker compose up -d --build --wait --wait-timeout 120
+docker compose exec app python -m app.manage inicializar
+start http://127.0.0.1:8080/acceso
+```
+
+Alta interactiva con dos contraseñas propias y confirmación de TOTP local. No hay contraseña por defecto ni registro web. No usar `down -v`: elimina la identidad persistente. El inventario de versiones de la sección siguiente corresponde a la base de etapa 1 conservada. La prueba de salud mantiene `etapa: 1` por compatibilidad del contrato; no indica que la autenticación esté ausente.
 
 ## Entorno observado
 
@@ -50,8 +62,8 @@ El último comando requiere Python de Windows; los anteriores solo Docker/cURL. 
 Para pytest sin instalar Python en Windows:
 
 ```bat
-docker build --target test -t el-sobre-de-las-ocho-tests:etapa1 .
-docker run --rm --network none --read-only --tmpfs /tmp el-sobre-de-las-ocho-tests:etapa1
+docker build --target test -t el-sobre-de-las-ocho-tests:etapa2a .
+docker run --rm --network none --read-only --tmpfs /tmp el-sobre-de-las-ocho-tests:etapa2a
 ```
 
 ## Reinicio y parada

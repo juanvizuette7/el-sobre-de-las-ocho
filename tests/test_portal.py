@@ -5,13 +5,14 @@ from html.parser import HTMLParser
 import pytest
 from fastapi.testclient import TestClient
 
-from app.main import app
+from app.config import Configuracion
+from app.main import crear_aplicacion
 
 
 @pytest.fixture
-def cliente():
+def cliente(tmp_path):
     """Proporciona peticiones HTTP sin depender de un servidor externo."""
-    with TestClient(app) as cliente_http:
+    with TestClient(crear_aplicacion(Configuracion(tmp_path)), base_url="http://127.0.0.1:8080") as cliente_http:
         yield cliente_http
 
 
@@ -70,10 +71,10 @@ def test_portada_y_recursos_funcionan_sin_servicios_externos(cliente):
             assert cliente.get(enlace).status_code == 200
     for recurso in pagina.recursos:
         # Las URL generadas pueden ser absolutas, pero deben pertenecer al portal.
-        assert recurso.startswith(("http://testserver/static/", "/static/"))
+        assert recurso.startswith(("http://127.0.0.1:8080/static/", "/static/"))
         assert cliente.get(recurso).status_code == 200
 
 
-@pytest.mark.parametrize("ruta", ["/.env", "/docs/RESUMEN_PROYECTO.md", "/static/../main.py", "/docente", "/descargar", "/docs", "/openapi.json"])
-def test_rutas_no_publicas_o_futuras_no_existen(cliente, ruta):
-    assert cliente.get(ruta).status_code == 404
+@pytest.mark.parametrize("ruta,codigo", [("/.env",404), ("/docs/RESUMEN_PROYECTO.md",404), ("/static/../main.py",404), ("/docente",401), ("/descargar",404), ("/docs",404), ("/openapi.json",404)])
+def test_rutas_no_publicas_o_futuras_no_existen(cliente, ruta, codigo):
+    assert cliente.get(ruta).status_code == codigo

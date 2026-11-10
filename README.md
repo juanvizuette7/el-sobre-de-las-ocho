@@ -1,6 +1,6 @@
 # El sobre de las ocho
 
-Portal académico de Sistemas de Comunicaciones y Seguridad Informática, Universidad Cooperativa de Colombia. **Etapa 1:** portada funcional, estado de salud y entorno local con FastAPI, Nginx y Docker Compose. Docente, estudiante y laboratorio se presentan como áreas pendientes; todavía no hay usuarios, descargas de exámenes, cifrado, MFA ni reloj didáctico.
+Portal académico de Sistemas de Comunicaciones y Seguridad Informática, Universidad Cooperativa de Colombia. **Etapas 1 y 2A:** portada, salud, cuentas SQLite, sesiones privadas, TOTP docente y RBAC en FastAPI detrás de Nginx. Publicación, asignaciones, descargas, cifrado del examen, reloj didáctico y laboratorio continúan pendientes.
 
 ## Ejecutar en CMD de Windows
 
@@ -15,7 +15,22 @@ docker compose up -d --build --wait --wait-timeout 120
 start http://127.0.0.1:8080
 ```
 
-La portada presenta el portal docente, el portal estudiante y el laboratorio de seguridad previsto para administración. Todas las funciones de evaluación están pendientes de habilitación. El laboratorio no tiene rutas públicas ni controles operativos. **Comprobar conexión** consulta realmente `/health`. La navegación admite teclado y enlace de salto al contenido; sin JavaScript se conserva el acceso al JSON de salud.
+La portada permite iniciar sesión para acceder a los paneles privados docente y estudiante. Las funciones de evaluación están pendientes de habilitación. El laboratorio administrativo no tiene rutas ni controles operativos. **Comprobar conexión** consulta realmente `/health`. La navegación admite teclado y enlace de salto al contenido; sin JavaScript se conserva el acceso al JSON de salud y los formularios de acceso funcionan con envío HTML nativo.
+
+## Inicializar las cuentas ficticias
+
+Desde una terminal CMD privada, con los servicios activos:
+
+```bat
+docker compose exec app python -m app.manage inicializar
+start http://127.0.0.1:8080/acceso
+```
+
+El procedimiento solicita sin eco contraseñas diferentes de 12–128 caracteres para `docente` y `estudiante`, confirma ambas y presenta el enrolamiento TOTP docente únicamente en la terminal. Configurar un autenticador TOTP local compatible (seis dígitos, 30 segundos, HMAC-SHA1) con el secreto o URI mostrados; confirmar su código. Esperar al siguiente código para el primer acceso. No copiar secretos a archivos del repositorio, argumentos o capturas. El comando rechaza sobrescribir cuentas existentes.
+
+Estudiante: contraseña → panel estudiante. Docente: contraseña → código del autenticador → panel docente. Los permisos se comprueban en el servidor. Cerrar sesión desde el panel revoca el token; para revocación operativa global: `docker compose exec app python -m app.manage revocar-sesiones` y confirmar `REVOCAR`. Alta, TOTP, límites, recuperación y frontera de confianza: [IDENTIDAD_ACCESO.md](docs/IDENTIDAD_ACCESO.md).
+
+El almacenamiento real se mantiene sin cuentas predefinidas hasta que el operador ejecute el alta. Las pruebas generan cuentas efímeras aisladas. HTTP local no cifra credenciales: usar solo cuentas ficticias. Cookies HttpOnly/SameSite y CSRF están activos; Secure se habilitará al configurar HTTPS con TLS real en la etapa de red.
 
 HTTP se usa exclusivamente para desarrollo local en esta etapa. HTTPS/TLS corresponde a la etapa 4. El único puerto publicado es `127.0.0.1:8080` de Nginx; el puerto 8000 de FastAPI no se publica en el anfitrión.
 
@@ -44,24 +59,25 @@ docker compose logs --tail 50
 docker compose stop
 ```
 
-Para arrancar otra vez: `docker compose up -d --wait --wait-timeout 120`. Para retirar contenedores/redes de este proyecto: `docker compose down` (no borra el código ni las imágenes). No se usa `down -v`; todavía no se crean bases o volúmenes de datos.
+Para arrancar otra vez: `docker compose up -d --wait --wait-timeout 120`. `docker compose down` retira contenedores/redes pero conserva el volumen `identidad`. **No usar `down -v`**: eliminaría cuentas, secreto TOTP, sesiones y auditoría. No se necesita borrar datos para reiniciar.
 
 ## Pruebas con pytest
 
 La imagen de pruebas es temporal y **no añade un tercer servicio a Compose**. No publica puertos y se ejecuta sin red. No instala pytest en la imagen del portal.
 
 ```bat
-docker build --target test -t el-sobre-de-las-ocho-tests:etapa1 .
-docker run --rm --network none --read-only --tmpfs /tmp el-sobre-de-las-ocho-tests:etapa1
+docker build --target test -t el-sobre-de-las-ocho-tests:etapa2a .
+docker run --rm --network none --read-only --tmpfs /tmp el-sobre-de-las-ocho-tests:etapa2a
 ```
 
-Los nueve casos verifican salud, HTML/recursos/anclas y ausencia de rutas privadas o futuras. Los resultados ejecutados, incidencias corregidas y límites de verificación se registran en [la ficha de etapa 1](docs/evidencias/etapa-01.md). No se han ejecutado P1–P10 del examen.
+Se conservan nueve casos de regresión de portada/infraestructura y se añaden pruebas de identidad, MFA, CSRF, RBAC, vigencia, revocación y ausencia de secretos. `/docente` sin sesión ahora devuelve 401; las rutas inexistentes siguen en 404. La suite usa bases temporales sin acceder al volumen real. Resultados en [la ficha 2A](docs/evidencias/etapa-02a.md); el historial de etapa 1 permanece en [su ficha](docs/evidencias/etapa-01.md). P1 solo tiene cobertura parcial de identidad, sin publicación; P2–P10 siguen pendientes.
 
 Revisión de navegador opcional, solo para desarrollo: requiere Node/npm y Google Chrome instalado; no se necesita para usar el portal. Las herramientas quedan en `.qa/`, ignorada por Git y excluida del contexto Docker:
 
 ```bat
 npm install --prefix .qa --no-save --package-lock=false playwright@1.65.0 @axe-core/playwright@4.14.0
 node scripts\verificar_interfaz.cjs
+node scripts\verificar_identidad.cjs
 ```
 
 La versión de axe usada en la verificación se registra en la ficha. El script comprueba cuatro anchos de pantalla, anclas, teclado, salud/errores/timeout, movimiento reducido, alternativa sin JavaScript y reglas automáticas WCAG A/AA. Guarda capturas/resultados locales en `.qa/`; un análisis automático no acredita accesibilidad completa.
@@ -89,7 +105,7 @@ Docker Compose crea dos contenedores. Nginx pertenece a la red de entrada y a la
 | [requirements.txt](requirements.txt), [requirements-dev.txt](requirements-dev.txt) | Versiones exactas, incluidas dependencias transitivas; los `.in` declaran las directas |
 | [.dockerignore](.dockerignore), [.gitignore](.gitignore) | Evitan incluir PDF/secretos en construcción y nuevos artefactos privados en Git |
 
-No se necesita `.env` ni ningún secreto para esta portada. No se crean archivos vacíos de configuración de autenticación antes de necesitarla. Los PDF previamente rastreados por Git siguen rastreados: las exclusiones no cambian el índice ni el historial.
+No se necesita `.env` con contraseñas. `app/config.py` define parámetros no secretos y `PORTAL_ORIGIN`; las credenciales se inicializan interactivamente y el secreto TOTP reside en el volumen privado, fuera del repositorio. El mapa adicional de módulos está en IDENTIDAD_ACCESO. La guía de aprendizaje es material privado: una regla `.gitignore` no retira su versión ya rastreada del índice/historial; no se publica el repositorio en esta entrega. Esto también aplica a los PDF privados previamente versionados.
 
 ## Documentación
 
@@ -97,4 +113,4 @@ La [guía Windows](docs/GUIA_WINDOWS.md) contiene los procedimientos operativos.
 
 Referencias técnicas consultadas: [plantillas en FastAPI](https://fastapi.tiangolo.com/advanced/templates/), [TestClient y pytest](https://fastapi.tiangolo.com/tutorial/testing/) y [salud y orden de arranque en Compose](https://docs.docker.com/compose/how-tos/startup-order/). Las fuentes académicas y páginas siguen siendo los PDF locales indicados en la matriz.
 
-La etapa 2 requiere autorización; esta entrega no implementa identidades, permisos ni el examen protegido.
+La etapa 2A implementa identidad y RBAC. La etapa 2B requiere autorización; asignaciones, política horaria y examen protegido no se implementan en esta entrega.

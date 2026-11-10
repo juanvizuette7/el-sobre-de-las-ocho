@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% from 'components.html' import icon %}
+{% block content %}
+<div class="identity-shell">
+  <header class="identity-header">
+    <a class="brand" href="/" aria-label="El sobre de las ocho"><span class="brand-symbol">{{ icon('sobre') }}</span><span>EL SOBRE<br>DE LAS OCHO</span></a>
+    <a class="text-link" href="/">Volver al inicio {{ icon('flecha') }}</a>
+  </header>
+  <main id="contenido" class="identity-main">{% block identidad %}{% endblock %}</main>
+  <footer class="page-footer"><span>Gestión segura de evaluaciones</span><span>Entorno local · Datos ficticios</span></footer>
+</div>
+{% endblock %}

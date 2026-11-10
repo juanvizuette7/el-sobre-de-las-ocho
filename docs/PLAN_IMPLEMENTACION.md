@@ -1,8 +1,8 @@
 # Plan de implementación
 
-**Estado: etapa 1 implementada; etapas 2–6 y P1–P10 pendientes.** Fuente principal: `docs/planificacion/Fase_3_Diseno_El_sobre_de_las_ocho.pdf` (F3), especialmente pp. 5–7. Se conservan nombres, orden y estimaciones de sus seis etapas. Resultados observados en [evidencia etapa 1](evidencias/etapa-01.md).
+**Estado: etapas 1 y 2A implementadas; 2B y etapas posteriores pendientes.** Fuente principal: `docs/planificacion/Fase_3_Diseno_El_sobre_de_las_ocho.pdf` (F3), especialmente pp. 5–7. Se conservan nombres, orden y estimaciones de sus seis etapas. Evidencias: [etapa 1](evidencias/etapa-01.md) y [2A](evidencias/etapa-02a.md). P1 tiene cobertura parcial de identidad; P2–P10 pendientes.
 
-El alcance actual comprende únicamente la etapa 1 y su revisión de presentación, con verificación en Windows. La etapa 2 permanece pendiente de autorización. Las rutas iniciales son propuestas en [ARQUITECTURA.md](ARQUITECTURA.md); README recoge las existentes. Las fuentes docentes y cobertura están en [MATRIZ_CLASES.md](MATRIZ_CLASES.md). El seguimiento de las seis etapas se conserva en este documento; la interfaz se organiza por funcionalidades del producto.
+El alcance actual incorpora 2A: identidad y control de acceso, sin ejecutar 2B. Las rutas iniciales son propuestas en ARQUITECTURA; README e IDENTIDAD_ACCESO recogen las existentes. Las fuentes docentes y cobertura están en MATRIZ_CLASES. El seguimiento de seis etapas permanece documental.
 
 ## Etapa 1 · Preparar — 3–4 h
 
@@ -24,6 +24,12 @@ Pruebas: comprobar configuración Compose, respuesta HTTP mínima a través del 
 ## Etapa 2 · Identificar — 5–7 h
 
 Objetivo F3 p. 5: distinguir rechazos por sesión, rol y horario; pasar a aceptación a las 08:00.
+
+### Subetapas de Identificar
+
+**2A entregada:** dos cuentas SQLite inicializadas localmente, Argon2id con sal, login/logout, sesión previa/MFA/completa con rotación, CSRF, límites persistentes, TOTP real y anti-repetición, RBAC, paneles privados y auditoría de identidad. No se implementa recuperación de cuentas ni un panel administrativo de usuarios. Evidencia y límites en IDENTIDAD_ACCESO y ficha 2A.
+
+**2B pendiente de autorización:** modelo de asignaciones, política ABAC de recurso y horario, reloj didáctico independiente de TOTP/sesiones, rechazos reproducibles por fecha/hora y sus pruebas. La etapa 2 completa no se declara cerrada. Cifrado, publicación/descarga real y laboratorios conservan sus etapas posteriores.
 
 | Tarea pequeña | Entregable futuro | Aceptación / comprobación |
 |---|---|---|
@@ -102,4 +108,4 @@ Guion F3 p. 7: minuto 0–1 problema y cuentas; 1–4 rechazo horario, original 
 
 Pruebas unitarias/integración previstas para reglas críticas: identidad/MFA, política horaria y asignación, cifrado e integridad antes de salida, auditoría, NAC y restauración. Usar reloj de apertura inyectable y fixtures ficticios, no esperas reales hasta las 08:00. Pruebas HTTP a través de Nginx para TLS, cabeceras y cuota; revisión manual para diseño, Packet Tracer y captura de tráfico. No escribir pruebas que solo comprueben que un archivo existe o reflejen sin criterio la implementación.
 
-Una etapa solo se cierra cuando sus criterios tienen resultados observados y evidencia. La matriz registra pendiente, implementado sin verificar, verificado o fallido. Errores no se convierten en éxitos documentales. Etapa 1 se entrega con su ficha; la siguiente acción, únicamente tras autorización, corresponde a **etapa 2: identificar**.
+Una etapa solo se cierra con resultados observados y evidencia. La matriz distingue pendiente, implementado sin verificar, verificado y fallido. Etapas 1 y 2A cuentan con sus fichas; la siguiente acción requiere autorización de **2B**, sin marcar la etapa 2 completa como terminada.

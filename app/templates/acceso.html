@@ -1,0 +1,35 @@
+{% extends 'privado_base.html' %}
+{% block title %}{{ 'Verificación de identidad' if mfa else 'Iniciar sesión' }} · El sobre de las ocho{% endblock %}
+{% block identidad %}
+<div class="identity-grid">
+  <section class="identity-intro" aria-labelledby="access-title">
+    <p class="eyebrow">ACCESO A LA PLATAFORMA</p>
+    <h1 id="access-title">{{ 'Un paso más para' if mfa else 'Tu espacio para' }}<br><em>{{ 'confirmar tu identidad.' if mfa else 'cada evaluación.' }}</em></h1>
+    <p>{{ 'Introduce el código de tu autenticador para acceder al portal docente.' if mfa else 'Accede con tu cuenta para consultar tu portal docente o estudiante.' }}</p>
+    <div class="identity-notice">{{ icon('info') }}<p>Uso local con cuentas ficticias. La conexión HTTP actual no cifra las credenciales en tránsito.</p></div>
+  </section>
+  <section class="identity-card" aria-labelledby="form-title">
+    <span class="area-icon">{{ icon('docente' if mfa else 'sobre') }}</span>
+    <h2 id="form-title">{{ 'Verificación en dos pasos' if mfa else 'Iniciar sesión' }}</h2>
+    <p>{{ 'Utiliza el código de seis dígitos de tu cuenta docente.' if mfa else 'Introduce tus credenciales de acceso.' }}</p>
+    {% if error %}<div class="form-error" role="alert" tabindex="-1">{{ error }}</div>{% endif %}
+    <form method="post" action="{{ '/acceso/totp' if mfa else '/acceso' }}" data-auth-form>
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      {% if mfa %}
+      <label for="codigo">Código del autenticador</label>
+      <input id="codigo" name="codigo" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" autocomplete="one-time-code" required aria-describedby="code-help">
+      <p id="code-help" class="field-help">Un código aceptado no puede utilizarse de nuevo.</p>
+      {% else %}
+      <label for="usuario">Usuario</label>
+      <input id="usuario" name="usuario" autocomplete="username" maxlength="64" required spellcheck="false" autocapitalize="none">
+      <label for="clave">Contraseña</label>
+      <input id="clave" name="clave" type="password" autocomplete="current-password" maxlength="128" required>
+      {% endif %}
+      <button class="primary-link form-submit" type="submit">{{ 'Verificar identidad' if mfa else 'Continuar' }} {{ icon('flecha') }}</button>
+      <p class="form-status" role="status" aria-live="polite"></p>
+    </form>
+    {% if mfa %}<form method="post" action="/salir" data-auth-form><input type="hidden" name="csrf" value="{{ csrf }}"><button class="plain-button" type="submit">Cancelar acceso</button><p class="form-status" role="status"></p></form>{% endif %}
+    <p class="field-help">{{ 'El acceso docente requiere contraseña y segundo factor.' if mfa else 'Acceso exclusivo para cuentas autorizadas.' }}</p>
+  </section>
+</div>
+{% endblock %}

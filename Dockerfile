@@ -7,7 +7,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /project
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt \
-    && useradd --uid 10001 --create-home portal
+    && useradd --uid 10001 --create-home portal \
+    && mkdir /data && chown portal:portal /data && chmod 700 /data
 COPY --chown=portal:portal app ./app
 
 # Las herramientas de prueba no se instalan en la imagen que sirve el portal.
@@ -21,4 +22,4 @@ CMD ["python", "-m", "pytest", "-q", "-p", "no:cacheprovider"]
 FROM base AS runtime
 USER portal
 EXPOSE 8000
-CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--no-server-header", "--no-proxy-headers"]
+CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--no-server-header", "--no-proxy-headers", "--no-access-log"]
