@@ -1,0 +1,97 @@
+# Material académico privado: conservar resúmenes Markdown.
+# IMPORTANTE: estas reglas no retiran archivos ya rastreados del índice/historial.
+/docs/material-profesor/**
+!/docs/material-profesor/**/
+!/docs/material-profesor/**/*.md
+/docs/planificacion/**
+!/docs/planificacion/**/
+!/docs/planificacion/**/*.md
+
+# Secretos y configuración local. Las plantillas deben tener solo ejemplos vacíos.
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.kdbx
+/secrets/
+/certs/
+/private/
+*.secret
+*.secret.*
+*_secret.txt
+*totp*.png
+*totp*.svg
+*totp*.txt
+
+# Datos de ejecución, sobres, bases y copias privadas.
+/data/
+/storage/
+/runtime/
+/backups/
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*
+*.enc
+*.bak
+*.backup
+*.dump
+
+# Artefactos de evidencia: guardar solo fichas Markdown revisadas para compartir.
+/docs/evidencias/**
+!/docs/evidencias/**/
+!/docs/evidencias/**/*.md
+/reports/**
+!/reports/**/
+!/reports/**/*.md
+*.pcap
+*.pcapng
+*.har
+*.log
+*.cookie
+*.cookies
+
+# Maquetas con posibles credenciales: versionar descripción saneada en Markdown.
+*.pkt
+*.pka
+
+# Entornos y cachés Python / herramientas de desarrollo.
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+*.egg-info/
+build/
+dist/
+node_modules/
+
+# Temporales de edición y Windows.
+.idea/
+.vscode/
+.ipynb_checkpoints/
+Thumbs.db
+Desktop.ini
+.DS_Store
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
