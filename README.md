@@ -1,6 +1,8 @@
 # El sobre de las ocho
 
-Portal académico de Sistemas de Comunicaciones y Seguridad Informática, Universidad Cooperativa de Colombia. **Etapas 1, 2A, 2B y 3:** identidad/TOTP/RBAC, asignación/apertura y documentos protegidos, en FastAPI detrás de Nginx. Publicación de TXT UTF-8 con AES-256-GCM, RSA-OAEP y SHA-256. SQLite y sobres en el volumen privado existente. TLS y laboratorios de red pendientes.
+**Entrada vigente: https://127.0.0.1:8443/acceso.** Etapa 4 incorpora TLS 1.2/1.3, CA local, redirección HTTP y captura Wireshark del tráfico real del portal. Se retiraron los laboratorios independientes fuera del alcance. [Guía de red](docs/SEGURIDAD_RED.md), [evidencia 4](docs/evidencias/etapa-04.md).
+
+Portal académico de Sistemas de Comunicaciones y Seguridad Informática. **Etapas 1, 2A, 2B y 3:** identidad/TOTP/RBAC, asignación/apertura y documentos protegidos, en FastAPI detrás de Nginx. Publicación de TXT UTF-8 con AES-256-GCM, RSA-OAEP y SHA-256. SQLite y sobres permanecen en el volumen privado existente. Etapa 4 añade HTTPS y captura del tráfico real del portal.
 
 ## Ejecutar en CMD de Windows
 
@@ -11,11 +13,15 @@ cd /d C:\Users\juanv\Proyectos\el-sobre-de-las-ocho
 docker version
 docker compose version
 docker compose config --quiet
-docker compose up -d --build --wait --wait-timeout 120
-start http://127.0.0.1:8080
+scripts\preparar_https.cmd
+start https://127.0.0.1:8443
 ```
 
-La portada permite iniciar sesión para acceder a los paneles privados. El docente publica el TXT en la tarjeta de evaluación y consulta actividad. El estudiante comprueba acceso y descarga únicamente si el backend autoriza y verifica integridad. El laboratorio no tiene controles web: sus herramientas son CLI locales. **Comprobar conexión** consulta `/health`. Los formularios de acceso/publicación funcionan con envío HTML nativo.
+La portada permite iniciar sesión para acceder a los paneles privados. El docente publica el TXT en la tarjeta de evaluación y consulta actividad. El estudiante comprueba acceso y descarga únicamente si el backend autoriza y verifica integridad. **Comprobar conexión** consulta `/health`. Los formularios de acceso/publicación funcionan con envío HTML nativo.
+
+El script conserva certificados existentes válidos y prepara permisos/servicios, pero **no instala confianza en Windows**. En un equipo nuevo revisar huella y confiar conscientemente en el certificado público CA del usuario según SEGURIDAD_RED antes de abrir el portal. En este equipo se instaló con autorización expresa; pruebas de navegador sin excepciones SSL. La RSA del examen/TOTP y los comandos anteriores se conservan.
+
+Resultados vigentes: **126 pruebas**, 22 comprobaciones TLS/red y 27 de infraestructura; regresión de autenticación y entrega por HTTPS. Para las consultas API de los scripts Node: `set "NODE_EXTRA_CA_CERTS=%CD%\certs\ca\ca.crt"` antes de ejecutarlos. Las notas HTTP de etapas previas siguientes son históricas; 8080 redirige a 8443.
 
 ## Sobre cifrado (etapa 3)
 
@@ -29,16 +35,16 @@ Desde una terminal CMD privada, con los servicios activos:
 
 ```bat
 docker compose exec app python -m app.manage inicializar
-start http://127.0.0.1:8080/acceso
+start https://127.0.0.1:8443/acceso
 ```
 
 El procedimiento solicita sin eco contraseñas diferentes de 12–128 caracteres para `docente` y `estudiante`, confirma ambas y presenta el enrolamiento TOTP docente únicamente en la terminal. Configurar un autenticador TOTP local compatible (seis dígitos, 30 segundos, HMAC-SHA1) con el secreto o URI mostrados; confirmar su código. Esperar al siguiente código para el primer acceso. No copiar secretos a archivos del repositorio, argumentos o capturas. El comando rechaza sobrescribir cuentas existentes.
 
 Estudiante: contraseña → panel estudiante. Docente: contraseña → código del autenticador → panel docente. Los permisos se comprueban en el servidor. Cerrar sesión desde el panel revoca el token; para revocación operativa global: `docker compose exec app python -m app.manage revocar-sesiones` y confirmar `REVOCAR`. Alta, TOTP, límites, recuperación y frontera de confianza: [IDENTIDAD_ACCESO.md](docs/IDENTIDAD_ACCESO.md).
 
-El almacenamiento real se mantiene sin cuentas predefinidas hasta que el operador ejecute el alta. Las pruebas generan cuentas efímeras aisladas. HTTP local no cifra credenciales: usar solo cuentas ficticias. Cookies HttpOnly/SameSite y CSRF están activos; Secure se habilitará al configurar HTTPS con TLS real en la etapa de red.
+En una instalación nueva, el almacenamiento comienza sin cuentas y el operador debe ejecutar el alta. Las pruebas generan cuentas efímeras aisladas. El portal usa HTTPS real; conserve las cuentas ficticias de demostración. Cookies Secure/HttpOnly/SameSite y CSRF están activos. La CA de desarrollo tiene el alcance y las limitaciones indicados en SEGURIDAD_RED.
 
-HTTP se usa exclusivamente para desarrollo local en esta etapa. HTTPS/TLS corresponde a la etapa 4. El único puerto publicado es `127.0.0.1:8080` de Nginx; el puerto 8000 de FastAPI no se publica en el anfitrión.
+Nginx publica 127.0.0.1:8443 para HTTPS y 127.0.0.1:8080 solo para redirigir. FastAPI permanece sin puerto publicado. La aplicación principal conserva exactamente dos servicios.
 
 ## Disponibilidad y reloj de ensayo (2B)
 
@@ -67,12 +73,12 @@ Para cerrar y repetir el ensayo, volver a **preparar --fecha 2026-11-09**: resta
 
 ```bat
 docker compose ps
-curl.exe --fail --show-error http://127.0.0.1:8080/health
-curl.exe --fail --show-error -I http://127.0.0.1:8080/static/styles.css
+curl.exe --ssl-revoke-best-effort --cacert certs/ca/ca.crt --fail --show-error https://127.0.0.1:8443/health
+curl.exe --ssl-revoke-best-effort --cacert certs/ca/ca.crt --fail --show-error -I https://127.0.0.1:8443/static/styles.css
 docker compose exec nginx nginx -t
 docker compose restart
 docker compose up -d --wait --wait-timeout 120
-curl.exe --fail --show-error http://127.0.0.1:8080/health
+curl.exe --ssl-revoke-best-effort --cacert certs/ca/ca.crt --fail --show-error https://127.0.0.1:8443/health
 ```
 
 Esperado: ambos servicios `healthy` y salud `{"status":"ok","servicio":"el-sobre-de-las-ocho","etapa":1}`. Para verificar automáticamente exposición de puertos, redes, usuarios, recursos HTTP y cabeceras, si tienes Python en Windows:
@@ -142,4 +148,4 @@ La [guía Windows](docs/GUIA_WINDOWS.md) contiene los procedimientos operativos.
 
 Referencias técnicas consultadas: [plantillas en FastAPI](https://fastapi.tiangolo.com/advanced/templates/), [TestClient y pytest](https://fastapi.tiangolo.com/tutorial/testing/) y [salud y orden de arranque en Compose](https://docs.docker.com/compose/how-tos/startup-order/). Las fuentes académicas y páginas siguen siendo los PDF locales indicados en la matriz.
 
-2A implementa identidad/RBAC y 2B añade ABAC de disponibilidad, asignaciones y reloj independiente. La etapa 3 añade cifrado, integridad y entrega real. La siguiente etapa es 4 y no se inicia automáticamente.
+2A implementa identidad/RBAC y 2B añade ABAC de disponibilidad, asignaciones y reloj independiente. La etapa 3 añade cifrado, integridad y entrega real. La etapa 4 incorpora HTTPS/TLS y captura del tráfico real del portal. La etapa 5 no se inicia automáticamente.

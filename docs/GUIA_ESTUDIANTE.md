@@ -1,5 +1,247 @@
 # Guía del estudiante: entender el sobre
 
+## Etapa 4: redes y HTTPS desde cero
+
+Esta es la explicación personal para estudiar. Las pantallas del programa conservan lenguaje de producto. El procedimiento técnico y las limitaciones verificadas están en [SEGURIDAD_RED.md](SEGURIDAD_RED.md); el manual gráfico/CLI del simulador está en [labs/network/README.md](../labs/network/README.md).
+
+### Una historia para ubicar las piezas
+
+La profesora tiene un examen en su computador. Inicia sesión y lo sube al portal. El portal lo guarda cifrado en el disco. Más tarde, un estudiante pide descargarlo. Hay dos preguntas distintas: «¿Quién puede abrir el archivo guardado?» y «¿Quién puede leer lo que viaja mientras se sube o descarga?». AES/RSA/SHA del sobre respondían la primera. HTTPS/TLS añade protección para el viaje. Las cuentas, la asignación y las ocho siguen decidiendo si se permite la entrega.
+
+Una **red informática** permite que dispositivos intercambien datos siguiendo protocolos, es decir, reglas compartidas. Un **servidor** es el programa que atiende solicitudes; también se llama servidor al equipo que lo ejecuta. Nginx y FastAPI son programas distintos del mismo sistema, no dos universidades ni dos computadores obligatorios.
+
+Una **IP** identifica una interfaz dentro de una red. `127.0.0.1` es loopback: «este mismo computador». Abrir el portal ahí no lo publica en toda la universidad. Un **puerto** identifica un servicio dentro del equipo: 8443 es la entrada HTTPS de este proyecto. Escribir 8443 no cifra nada por sí solo; Nginx tiene que hablar TLS en ese puerto.
+
+**Docker** ejecuta programas aislados como contenedores. **Compose** describe cómo se levantan juntos. Seguimos teniendo dos contenedores principales. **Nginx** es la puerta o proxy inverso: recibe la conexión del navegador y pregunta a **FastAPI**, el programa que aplica las reglas. FastAPI no publica un puerto hacia Windows. Entre ambos hay una red privada Docker; no es la VLAN de Packet Tracer.
+
+### HTTP, HTTPS y TLS
+
+**HTTP** define peticiones y respuestas: «GET esta página», «POST este formulario», código 200/403/409, cabeceras y cuerpo. HTTP sin TLS permite que un observador del trayecto lea datos transmitidos.
+
+**TLS** es el protocolo que crea un canal cifrado y autentica el servidor con certificados. **HTTPS** es HTTP transportado por ese canal TLS. TLS no cambia el significado de 403 ni decide si el estudiante tiene la evaluación asignada. Protege el contenido mientras viaja. Un **paquete** es una unidad de datos de la red; varios paquetes transportan una petición. **TCP** organiza una conexión fiable y ordenada; su saludo SYN, SYN-ACK y ACK establece la conexión, pero **no la cifra**. El saludo TLS sucede después y negocia la protección.
+
+Nuestro trayecto queda así:
+
+1. Navegador → `https://127.0.0.1:8443` → Nginx: canal TLS real.
+2. Nginx → `app:8000`: HTTP dentro de la red privada de Docker.
+3. FastAPI → SQLite/sobre privado: comprueba y recupera antes de entregar.
+4. Nginx envía la respuesta al navegador dentro del canal TLS.
+
+Por eso no decimos «cifrado extremo a extremo hasta Python»: TLS termina en Nginx. Y no decimos que AES del archivo cifre la conexión: es otra protección. El texto se utiliza en memoria después de verificar el sobre; TLS protege ese texto durante la entrega autorizada al navegador.
+
+### Certificado y autoridad certificadora
+
+Un **certificado digital** relaciona una identidad/nombre de servidor con una clave pública mediante una firma. El servidor conserva la privada correspondiente. El navegador comprueba firma/cadena, vigencia y nombre. No basta ver un archivo llamado certificado.
+
+Una **autoridad certificadora**, CA, firma certificados. Windows/navegador debe decidir en qué raíces confía. En desarrollo creamos una CA local, distinta de una autoridad pública de Internet. Su certificado público se puede importar; su clave privada debe permanecer protegida. Quien robe esa privada podría emitir certificados que el usuario que confía en la CA acepte. Por eso la confianza requiere una decisión consciente.
+
+**SAN**, Subject Alternative Name, es la lista de nombres/IP válidos del certificado. Aquí incluye IP `127.0.0.1` y DNS `localhost`. El puerto no forma parte del SAN. No incluir `::1` significa que no se debe anunciar una URL IPv6 como verificada. La URL canónica del proyecto es `https://127.0.0.1:8443/acceso`.
+
+Una **huella** del certificado permite comparar exactamente qué certificado se va a confiar. La huella del certificado DER no es necesariamente el hash del texto del archivo PEM, que contiene encabezados y Base64. Nuestros comandos muestran la huella del certificado, no una contraseña. Los certificados del servidor vencen tras 180 días; esto usa tiempo real, no las 7:59:59 del laboratorio.
+
+### Demostración 1: preparar HTTPS y entender cada paso
+
+Problema: proteger el trayecto de la profesora y del estudiante. Herramientas: Docker, Nginx y CA local.
+
+1. Abrir Docker Desktop, esperar a que esté listo y usar contenedores Linux.
+2. Abrir **CMD**, no escribir estos comandos dentro del navegador o del CLI de Cisco.
+
+```bat
+cd /d C:\Users\juanv\Proyectos\el-sobre-de-las-ocho
+scripts\preparar_https.cmd
+```
+
+`cd /d` cambia carpeta y unidad. El script construye la imagen, ejecuta el generador sin red, conserva certificados existentes válidos, aplica permisos y arranca Compose. No reinicializa cuentas ni genera otra RSA del examen. **No instala confianza en Windows**. Si falla por archivos incompletos no los borra; hay que recuperar una copia privada consistente y entender la causa.
+
+El generador crea tres parejas: CA, servidor Nginx y servidor del laboratorio ficticio. No reutiliza las claves RSA del examen ni el secreto TOTP. El contenedor temporal de preparación usa root solo para asignar propietario Linux a los certificados de cada servicio. Nginx normal sigue ejecutándose como usuario 101, con raíz de solo lectura y solo su pareja TLS montada.
+
+3. Comprobar huella y SAN:
+
+```bat
+docker run --rm --user 0 --read-only --network none --mount "type=bind,source=%CD%\certs,target=/certificados,readonly" el-sobre-de-las-ocho-app:etapa1 python -m app.certificates comprobar
+```
+
+`--mount` entrega esa carpeta al contenedor solo para leerla; `--network none` impide conexiones de red de esa utilidad. El resultado muestra nombre/huella/SAN sin privadas. Revisarlos antes de confiar.
+
+4. Si decides confiar en esa CA local:
+
+```bat
+certutil -user -addstore Root certs\ca\ca.crt
+```
+
+`-user` limita el cambio al usuario actual. `Root` es el almacén de raíces de confianza. `ca.crt` es el certificado público. Si Windows pregunta «Está a punto de instalar…», revisar identidad/huella y pulsar **Sí** solo si coinciden. En nuestra ejecución se pidió y recibió autorización expresa antes de hacer este cambio. No se importó la clave privada.
+
+5. Cerrar/reabrir el navegador si estaba abierto y entrar directamente a la URL HTTPS. Usar el icono de información de conexión/certificado para revisar nombre, emisor, vigencia y SAN; el dibujo exacto del candado cambia según Brave/Chrome. No basarse únicamente en el color o en que haya una palabra HTTPS.
+
+```bat
+start https://127.0.0.1:8443/acceso
+python scripts\verificar_red.py
+```
+
+El verificador comprueba conexiones reales, no solo archivos: TLS1.2/1.3, rechazo de versiones viejas, nombre incorrecto y cliente que no confía en la CA, redirección HTTP y rutas privadas. Esperado en esta entrega: 22 comprobaciones aprobadas. Un error de CA/nombre/vigencia es un fallo que debe corregirse, no un motivo para activar `-k` permanentemente.
+
+6. Si abres `http://127.0.0.1:8080/acceso`, Nginx responde 308 hacia HTTPS antes de consultar la aplicación. 308 es una redirección; no es una autenticación aprobada. Una contraseña que ya se hubiera enviado por HTTP no puede cifrarse retroactivamente. Por eso se usa el acceso HTTPS desde el principio.
+
+7. La cookie se envía con **Secure** para HTTPS, **HttpOnly** para reducir acceso desde JavaScript y **SameSite=Lax** para limitar ciertos envíos entre sitios. No contiene el rol; el servidor sigue comprobando la sesión SQLite. CSRF sigue comparando token y origen exacto. No cambiar la URL entre localhost e IP durante un formulario, porque el origen configurado es la IP con puerto8443.
+
+8. Para repetir, ejecutar `docker compose restart` y después esperar salud con `docker compose up -d --wait --wait-timeout 120`. No borrar volúmenes. Para dejar de confiar en la CA al terminar el proyecto, seguir la reversión de SEGURIDAD_RED: identificar exactamente su SHA-1 y `certutil -user -delstore Root IDENTIFICADOR`. Eso quita confianza, no destruye el examen; no eliminar otras raíces.
+
+Qué decir: «El navegador verifica la CA que decidí confiar y el SAN de la IP. Nginx solo acepta TLS1.2/1.3. HTTP no atiende acceso o documentos. Las reglas de aplicación se ejecutan después, como antes».
+
+### Demostración 2: seguir publicando y descargando
+
+Entrar docente en ventana normal con contraseña y el código actual TOTP; entrar estudiante en una privada. La aplicación no muestra laboratorios en el panel estudiante. Publicar el TXT desde la tarjeta docente y comprobar su nombre/estado. No hace falta volver a inicializar usuarios.
+
+Ejecutar los comandos de reloj/asignación/alteración de etapa3 de la sección siguiente, **uno cada vez**, mirando el navegador entre cambios. Antes de las ocho: 403, sin descarga. A las ocho con asignación: 200 y original idéntico. Sin asignación: 403 aunque la conexión sea HTTPS. GCM o SHA alterado: 409 sin documento. Restaurar: original descargable. HTTPS no convierte una evaluación no asignada en autorizada.
+
+Una sesión realmente vencida pide entrar de nuevo. No atrasar Windows para recuperar acceso: TOTP y sesiones siguen usando tiempo real. Si el navegador muestra «Verificación completada» hay que leer también el estado y el motivo: una consulta completada puede haber confirmado un rechazo.
+
+Qué decir: «Conservo las mismas identidades y el mismo sobre. Cambié el canal de comunicación; no cambié la regla horaria». El documento previamente publicado se verificó tras la transición sin reemplazarlo.
+
+### Demostración 3: Wireshark paso a paso
+
+**Wireshark** es un analizador que muestra paquetes capturados. **Npcap** es el componente que permite capturarlos en Windows, incluido loopback. **dumpcap** captura y **tshark** analiza desde terminal; ambos pertenecen a Wireshark. No son firewalls y no garantizan que una aplicación esté segura.
+
+Problema a observar: la misma marca ficticia visible en HTTP y cifrada en TLS. No usar contraseñas de ejemplo del portal, TOTP, cookies o exámenes. No capturar Wi-Fi «por si acaso»: seleccionar exclusivamente el tráfico local preparado.
+
+Si Wireshark no está instalado en otro equipo, ir a su web oficial, instalarlo incluyendo Npcap y herramientas de consola; aceptar los permisos de instalación conscientemente. Comprobar con `"C:\Program Files\Wireshark\dumpcap.exe" -D` y localizar **Adapter for loopback traffic capture**. En nuestro equipo se ejecutó realmente con Wireshark4.4.9/Npcap; no se supone que esté instalado en todos los computadores.
+
+1. Abrir CMD en la raíz y levantar el laboratorio separado:
+
+```bat
+docker compose -f labs\compose.red.yaml up -d
+```
+
+`-f` usa otra receta Compose y otro proyecto. Solo ofrece una marca fija en HTTP8082/HTTPS8444. No monta la base, RSA/TOTP o sobres del portal y no puede listar carpetas del repositorio.
+
+2. Abrir Wireshark. En la lista de interfaces, doble clic en loopback o abrir opciones y seleccionar solo esa interfaz. Antes de empezar, poner el **filtro de captura**:
+
+```text
+host 127.0.0.1 and (tcp port 8082 or tcp port 8444)
+```
+
+El filtro decide qué paquetes se guardan; excluye el portal8443 y las pruebas8445. No es igual al filtro de visualización que se escribe después en la barra superior. Si el filtro no es aceptado, detenerse y corregirlo antes de generar tráfico; no ampliar a toda la red.
+
+3. En otra CMD generar dos consultas sin cookies:
+
+```bat
+curl.exe http://127.0.0.1:8082/marca
+curl.exe --ssl-revoke-best-effort --cacert certs\ca\ca.crt https://127.0.0.1:8444/marca
+```
+
+`--cacert` indica qué raíz valida el servidor. El curl Windows/Schannel puede pedir revocación que una CA local no publica; `--ssl-revoke-best-effort` conserva comprobación de cadena/nombre y permite la ausencia de ese servicio local. No es `--insecure`. No agregar `-b` ni copiar cookies.
+
+No usar un navegador ya autenticado para este intercambio: las cookies se vinculan al host y pueden viajar entre puertos. curl/urllib sin almacén de cookies evitan ese problema.
+
+4. Pulsar el cuadrado rojo de detener captura. Guardar como `.qa\red\mi-comparacion.pcapng`, fuera de Git. Abrir filtro de visualización:
+
+```text
+tcp.port == 8082 || tcp.port == 8444
+```
+
+5. Probar `tcp.flags.syn == 1`: SYN y SYN-ACK muestran el comienzo de las conexiones TCP. Revisar origen/destino, puertos y tiempos. Ambos extremos son el computador local; las direcciones MAC de un enlace físico no tienen por qué aparecer como en Ethernet en una captura loopback.
+
+6. Seleccionar el flujo HTTP8082. Si no se identifica, clic derecho → Decode As → HTTP. Clic derecho → Follow → TCP Stream. Deben aparecer ruta `/marca`, cabeceras y `SOBRE-LAB-HTTP-HTTPS-2026` en claro. Cerrar el stream y limpiar el filtro de flujo que Wireshark haya dejado.
+
+7. Filtrar `tcp.port == 8444`. Decode As TLS si hace falta. Revisar ClientHello/ServerHello y registros TLS. Follow TCP Stream no muestra el cuerpo HTTP como texto: muestra bytes TLS. Las IP, puertos, tamaño y tiempos siguen visibles. TLS1.3 cifra parte del handshake; no esperar que todos los certificados o campos sean visibles en toda captura.
+
+8. Filtro `tcp contains "SOBRE-LAB-HTTP-HTTPS-2026"`: debe encontrar la marca solo en HTTP. No proporcionar claves de sesión al analizador ni activar SSLKEYLOGFILE en este ensayo. Un analizador que recibe las claves podría descifrar: eso sería otro experimento.
+
+9. Alternativa automática reproducible:
+
+```bat
+python scripts\capturar_comunicaciones.py
+```
+
+Captura ocho segundos, genera ambas consultas reales, usa tshark y guarda `.qa/red/http-https.pcapng` con resumen JSON. Nuestra captura real tuvo marca visible en un paquete HTTP, cero apariciones en claro en HTTPS, cinco registros TLS cifrados y cuatro paquetes con SYN/SYN-ACK. Los conteos pueden cambiar entre ejecuciones; no memorizar esos números como si fueran el protocolo. Lo importante es el flujo y las verificaciones.
+
+10. Detener el laboratorio al terminar:
+
+```bat
+docker compose -f labs\compose.red.yaml down
+```
+
+Repetir requiere levantarlo otra vez e iniciar otra captura. Si no aparece ningún paquete, revisar interfaz loopback, filtro, puertos y que el laboratorio esté activo. Si no aparece HTTP como protocolo, revisar Decode As. No concluir que «todo está cifrado» porque se capturó la interfaz equivocada.
+
+Qué decir: «Esta captura es auténtica y usa solo datos ficticios. TCP transporta ambos flujos; TLS protege el contenido de uno. También validé el certificado, no solo observé caracteres ilegibles».
+
+### Demostración 4: entender VLAN y ACL antes de configurar Cisco
+
+Una **MAC** identifica una interfaz en el enlace local. Un switch aprende por qué puerto se alcanza cada MAC. Una **VLAN** divide un switch en grupos lógicos que no comparten el mismo dominio de broadcast. No significa «cifrado» ni «conexión privada a Internet». Un **router** comunica redes diferentes; una **puerta de enlace** es la dirección a la que un equipo manda tráfico destinado a otra red.
+
+Una **ACL** es una lista ordenada de reglas: permitir o denegar según origen/destino/protocolo/puerto. El orden y la interfaz donde se aplica son importantes. Una ACL stateless no recuerda conversaciones como un firewall stateful; no presentar ambos como idénticos. Un puerto access lleva la VLAN de un equipo final; un trunk transporta varias VLAN etiquetadas entre switch/router.
+
+En la maqueta hay docentes VLAN10, servidores VLAN20 y estudiantes VLAN30. El estudiante puede abrir HTTPS del servidor web, pero no administrar el switch ni llegar al servidor AAA. La profesora puede gestionar por el acceso previsto. Estas IP son del simulador: no se escriben en el adaptador de Windows.
+
+La receta completa, clic por clic y comando por comando, está en `labs/network/README.md`. Incluye tabla de dispositivos/puertos/IP, comparación plana, CLI `switch-core.cfg`, `router-r1.cfg`, comprobación `show vlan brief`, `show interfaces trunk`, `show access-lists` y pruebas permitidas/denegadas. Leer primero la tabla de cableado; pegar una configuración para Fa0/1 cuando conectaste Fa0/8 no hace funcionar la red.
+
+Packet Tracer9 está instalado y se logró abrir su interfaz. **No hay un `.pkt` validado ni resultados de ping/VLAN/ACL/WLAN/RADIUS ejecutados por esta entrega**. Debes completar la receta, guardar el archivo desde Packet Tracer, cerrarlo y reabrirlo antes de presentarlo como evidencia. El diagrama y los `.cfg` son material preparado, no un sustituto de ejecutar la simulación.
+
+Para repetir: guardar una copia antes de ACL/AAA, abrir esa copia y usar Realtime/Fast Forward. En Simulation seleccionar ARP/ICMP/TCP, avanzar un evento y revisar dónde se descarta la petición. Conservar fallos y causas en la ficha P5. No usar un archivo vacío con extensión `.pkt` ni un dibujo como prueba de conectividad.
+
+Qué decir después de ejecutarlo: «Las VLAN separan redes; el router y la ACL deciden cruces. Esta maqueta representa una política, no protege por sí misma los contenedores reales de Docker». Hasta ejecutarlo, decir que está diseñado y pendiente de validación.
+
+### Demostración 5: WLAN, WPA2 y RADIUS
+
+**WLAN** es una red local inalámbrica. **SSID** es el nombre visible de esa red. **WPA2 Personal** protege el enlace radio con una clave compartida y cifrado AES-CCMP; no es la clave AES del documento. Una contraseña compartida débil sigue siendo un problema. **WPA2-Enterprise** usa autenticación individual/802.1X con un servidor compatible, normalmente RADIUS; no afirmar que existe solo por seleccionar WPA2 Personal.
+
+**RADIUS** es un protocolo de AAA para consultar identidades de red. En C4 el switch consulta a Server-PT antes de permitir administración. No reemplaza la cuenta docente de SQLite ni el TOTP de la web. Cada sistema tiene sus identidades de ensayo y límites.
+
+El manual prepara dos prácticas separadas: WRT300N + Laptop/WPC300N con WPA2 Personal y RADIUS para administración del switch. En WLAN: Physical apagar laptop/cambiar módulo/encender; GUI Wireless configurar SSID/cifrado; PC Wireless conectar y probar clave buena/mala. En RADIUS: Server → Services → AAA, cliente switch/IP/secreto, usuario ficticio; switch con AAA/SSH; probar usuario válido e inválido. No reutilizar ninguna contraseña real.
+
+La capacidad efectiva depende del dispositivo/IOS de Packet Tracer. Si rechaza un comando o no tiene la opción AAA/HTTPS, registrar versión y limitación; no marcar «funciona» basándose en que lo dice una guía. Los detalles y recuperación de consola local están en el manual. No se necesita instalar un servidor RADIUS real en Windows para esta práctica.
+
+### Demostración 6: NAC sin bloquear el computador
+
+**NAC**, Network Access Control, combina identidad y estado de un dispositivo para decidir dónde puede conectarse. Por ejemplo: portátil docente conocido y actualizado puede administrar; equipo desconocido no entra; uno conocido sin actualización recibe una restricción. La **postura** es ese conjunto de condiciones de seguridad, no la hora del examen.
+
+```bat
+python -m labs.nac.modelo
+```
+
+El script crea objetos de ejemplo. No lee el antivirus real, no autentica tu Wi-Fi y no instala reglas. `Equipo` representa identidad/tipo/condiciones; `Zona` guarda reglas y padre; `admitir` devuelve permitir/rechazar/restringir. Una regla hija puede reemplazar la heredada. Lo definido solo en la hija no aparece en el padre. Si no hay permiso explícito, default deny.
+
+Resultado esperado y probado: docente conforme permitido en administración; estudiante conforme permitido para web; estudiante en administración rechazado; desconocido rechazado; conocido sin actualizar restringido. La demostración de ámbitos permite 3306 en una zona interna y lo rechaza fuera; ese puerto ilustra la clase, no significa que nuestro portal haya migrado de SQLite a MySQL.
+
+Para repetir, ejecutar de nuevo: todos los datos se recrean en memoria y no hay que restaurar adaptadores de Windows. Las pruebas automatizadas verifican estas decisiones. Qué decir: «Es un modelo de decisión académico, no un NAC empresarial que esté filtrando mi red».
+
+### Demostración 7: ARP y MITM con tablas ficticias
+
+**ARP** relaciona una IP local con una MAC para entregar tramas. No es una contraseña ni un cifrado. Una **tabla ARP** guarda asociaciones aprendidas. **MITM**, intermediario, describe una situación donde alguien se coloca en el camino de una comunicación. Una asociación ARP fraudulenta puede desviar tráfico hacia una MAC equivocada.
+
+```bat
+python -m labs.arp.modelo
+```
+
+El modelo muestra una puerta `192.0.2.1` asociada primero a la MAC del router y después a la de un intermediario ficticio. No ejecuta `arp -s`, no envía paquetes ni modifica el sistema. Los rangos/MAC son de ejemplo. Comparar ambas tablas y explicar hacia quién se entregarían las tramas.
+
+TLS correctamente validado dificulta leer/modificar contenido sin que falle el canal, pero no corrige ARP, no oculta todos los metadatos y no garantiza que el intermediario deje pasar los paquetes. Aceptar un certificado falso o entregar claves al adversario cambia el modelo de amenaza. No capturar credenciales para «demostrar» esto.
+
+Repetir el comando restaura las tablas iniciales en memoria. Qué decir: «Representé el engaño que muestra C9 p.8 y su consecuencia; no hice envenenamiento ARP real. La captura HTTP/HTTPS es otro ensayo controlado y auténtico».
+
+### Preguntas para la sustentación de redes
+
+| Pregunta | Respuesta correcta con nuestro proyecto |
+|---|---|
+| ¿Cambiar 8080 por 8443 crea HTTPS? | No; hay que configurar TLS/certificado en Nginx y validar la conexión. |
+| ¿Qué comprueba el certificado? | Cadena/firma, vigencia y nombre/IP del servidor; no que el estudiante esté asignado. |
+| ¿Confiaste en una clave privada? | No. Se importó solo el certificado público de la CA, con autorización y huella revisada. |
+| ¿Por qué no ignorar la advertencia? | Dejaría sin validar identidad del servidor; corregimos CA/SAN o fecha, no ocultamos el error. |
+| ¿TLS sustituye AES y SHA? | No: TLS protege el viaje; el sobre protege almacenamiento y referencia aprobada. |
+| ¿Se ve algo en una captura HTTPS? | IP, puertos, tamaños, tiempos y partes del handshake; el cuerpo va cifrado sin claves de sesión. |
+| ¿El saludo TCP cifra datos? | No; establece la conexión fiable. TLS negocia protección encima de TCP. |
+| ¿La VLAN protege Docker? | No; Packet Tracer es una maqueta separada. Docker usa sus redes internas reales. |
+| ¿Una VLAN impide cualquier acceso? | Separa broadcast; el enrutamiento/ACL y políticas determinan los cruces. |
+| ¿ACL equivale a firewall stateful? | No. La lista preparada filtra paquetes sin seguir sesiones. |
+| ¿WPA2 basta para abrir el examen? | No. Protege el enlace radio y la aplicación todavía exige identidad, asignación, hora e integridad. |
+| ¿RADIUS es el login TOTP del portal? | No; la práctica autentica administración de red con otro servicio de ensayo. |
+| ¿Tu NAC está bloqueando Windows? | No, es un modelo Python probado con datos de ejemplo y ámbitos. |
+| ¿Ejecutaste MITM o ARP spoofing? | No, mostré tablas simuladas; la captura real solo tiene la marca del laboratorio autorizado. |
+| ¿Guardaste un `.pkt` funcional? | No en esta entrega; están manual/configuraciones y falta ejecutar y guardar la maqueta. |
+| ¿Qué pasa si se pierde el certificado TLS? | Nginx no arranca correctamente; no activa autenticación HTTP. Recuperar respaldo/renovar explícitamente. |
+
+La evidencia de etapa4 diferencia exactamente implementación real, captura real, modelos ejecutados y simulación Cisco pendiente. La siguiente etapa5 tratará SQLi/controles DevSecOps/carga local cuando se solicite; no se anticipa aquí.
+
 ## Etapa 3: explicación desde cero y demostración personal
 
 La etapa 3 añade documentos reales al sistema existente. Esta sección describe lo implementado; las secciones históricas de 1/2A/2B que aparecen después explican lo que existía al cerrar cada etapa. La guía es privada para estudiar, no texto para poner en la aplicación. La descripción técnica de entrega está en [CRIPTOGRAFIA_SOBRE.md](CRIPTOGRAFIA_SOBRE.md).

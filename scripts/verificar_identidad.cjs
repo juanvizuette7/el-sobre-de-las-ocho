@@ -27,7 +27,7 @@ async function verificar() {
   app:
     image: el-sobre-de-las-ocho-app:etapa1
     environment:
-      PORTAL_ORIGIN: http://127.0.0.1:8081
+      PORTAL_ORIGIN: https://127.0.0.1:8445
     read_only: true
     tmpfs: [/tmp]
     volumes: [datos_prueba:/data]
@@ -43,7 +43,7 @@ async function verificar() {
     command: [-g, "daemon off;"]
     read_only: true
     tmpfs: [/tmp]
-    ports: ["127.0.0.1:8081:8080"]
+    ports: ["127.0.0.1:8445:8443"]
     volumes:
       - type: bind
         source: ${ruta("infra/nginx/nginx.conf")}
@@ -52,6 +52,10 @@ async function verificar() {
       - type: bind
         source: ${ruta("infra/nginx/default.conf")}
         target: /etc/nginx/conf.d/default.conf
+        read_only: true
+      - type: bind
+        source: ${ruta("certs/nginx")}
+        target: /etc/nginx/tls
         read_only: true
     networks: [entrada, portal]
     depends_on:
@@ -88,7 +92,7 @@ volumes:
       docker(["exec", "-T", "app", "python", "-m", "app.demo", ...args]);
     administrarEnsayo("preparar", "--fecha", "2026-11-09");
     navegador = await chromium.launch({ channel: "chrome", headless: true });
-    const contexto = await navegador.newContext();
+    const contexto = await navegador.newContext({ ignoreHTTPSErrors: false });
     const pagina = await contexto.newPage();
     pagina.on("response", (r) =>
       respuestas.push(
@@ -97,7 +101,7 @@ volumes:
     );
     const errores = [];
     pagina.on("pageerror", (e) => errores.push(e.message));
-    const url = "http://127.0.0.1:8081";
+    const url = "https://127.0.0.1:8445";
     for (const ancho of [1440, 390]) {
       await pagina.setViewportSize({ width: ancho, height: 900 });
       await pagina.goto(url + "/acceso");
@@ -134,6 +138,12 @@ volumes:
     const botonDisponibilidad = pagina.getByRole("button", {
       name: "Comprobar acceso",
     });
+    const cookieHTTPS = (await contexto.cookies()).find(
+      (c) => c.name === "sobre_sesion",
+    );
+    assert.equal(cookieHTTPS.secure, true);
+    assert.equal(cookieHTTPS.httpOnly, true);
+    assert.equal(cookieHTTPS.sameSite, "Lax");
     const rutaDisponibilidad =
       await botonDisponibilidad.getAttribute("data-availability");
     const capturasHorarias = new Set();
@@ -390,13 +400,11 @@ volumes:
     const original = Buffer.from(
       "EL SOBRE DE LAS OCHO\nParcial ficticio publicado desde el navegador.\n",
     );
-    await pagina
-      .locator('input[type="file"]')
-      .setInputFiles({
-        name: "parcial-demo.txt",
-        mimeType: "text/plain",
-        buffer: original,
-      });
+    await pagina.locator('input[type="file"]').setInputFiles({
+      name: "parcial-demo.txt",
+      mimeType: "text/plain",
+      buffer: original,
+    });
     assert.match(
       await pagina.locator('input[type="file"]').inputValue(),
       /parcial-demo.txt$/,

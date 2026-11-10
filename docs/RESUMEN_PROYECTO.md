@@ -1,8 +1,11 @@
 # El sobre de las ocho: resumen del proyecto
 
-**Estado vigente, 10 de noviembre de 2026: etapa 3 implementada y verificada.** Publicación docente de TXT, AES-256-GCM/RSA-OAEP-SHA256, SHA-256 protegido y descarga con RBAC/ABAC existente. Original idéntico a las ocho, dos manipulaciones reales bloqueadas con 409 y restauración funcional. 120 pruebas y recorrido real Nginx/navegador. [Especificación](CRIPTOGRAFIA_SOBRE.md), [evidencia](evidencias/etapa-03.md). P1–P3 verificados en aplicación HTTP local; etapas 4–6/P4–P10 pendientes. El análisis inicial siguiente conserva criterios originales; sus notas de estado 2B son históricas.
+**Estado vigente de etapa 4:** portal en `https://127.0.0.1:8443/acceso`; TLS/certificados, regresión de aplicación y captura del portal real verificadas. **126 pruebas aprobadas**, 22 comprobaciones TLS/red y 27 de infraestructura. Cisco Packet Tracer y laboratorios NAC/ARP no forman parte del alcance y fueron retirados. [Seguridad de red](SEGURIDAD_RED.md), [evidencia 4](evidencias/etapa-04.md). Etapa 5 no iniciada. Las notas siguientes conservan el análisis inicial como referencia documental.
 
-Análisis inicial: 9 de noviembre de 2026. **Estado actualizado: etapas 1, 2A y 2B implementadas; examen protegido y laboratorios pendientes.** La plataforma incluye SQLite, Argon2id, sesiones privadas, TOTP docente, RBAC y auditoría de identidad. Asignación y apertura ya se verifican sobre metadatos; publicación, cifrado, integridad y descarga reales permanecen sin implementar. Detalles en [AUTORIZACION_HORARIO.md](AUTORIZACION_HORARIO.md). Referencias: [README](../README.md), [IDENTIDAD_ACCESO](IDENTIDAD_ACCESO.md) y [evidencia 2A](evidencias/etapa-02a.md).
+
+**Etapa 3 implementada y verificada.** Publicación docente de TXT, AES-256-GCM/RSA-OAEP-SHA256, SHA-256 protegido y descarga con RBAC/ABAC existente. Original idéntico, dos manipulaciones reales bloqueadas con 409 y restauración funcional. 120 pruebas y recorrido Nginx/navegador. [Especificación](CRIPTOGRAFIA_SOBRE.md), [evidencia](evidencias/etapa-03.md). La evidencia de etapa 4 documenta el TLS vigente; el análisis inicial posterior conserva los criterios de origen, no el estado actual.
+
+Análisis inicial: 9 de noviembre de 2026. El estado de etapas 1 y 2 que aparece en las notas originales es histórico; las etapas 2B y 3 están implementadas según sus evidencias respectivas. La plataforma incluye SQLite, Argon2id, sesiones privadas, TOTP docente, RBAC y auditoría. Detalles vigentes en [AUTORIZACION_HORARIO.md](AUTORIZACION_HORARIO.md), [CRIPTOGRAFIA_SOBRE.md](CRIPTOGRAFIA_SOBRE.md) y [evidencia 2A](evidencias/etapa-02a.md).
 
 ## Especificación y fuentes
 
@@ -18,7 +21,7 @@ La demostración verificable consiste en rechazar la descarga a las 07:59:59, en
 
 ## Alcance
 
-Incluye un portátil Windows con Docker Desktop, dos cuentas ficticias, un parcial activo, una aplicación Python detrás de Nginx, SQLite, almacenamiento privado, controles locales de ensayo, una maqueta Packet Tracer, un modelo NAC en Python y una copia SQL vulnerable aislada. Herramientas gratuitas o educativas preparadas antes de presentar (F3, pp. 1–2).
+El alcance desplegado incluye un entorno Windows con Docker Desktop, una aplicación Python detrás de Nginx, SQLite y almacenamiento privado. Las demás prácticas descritas en los PDF docentes son referencias académicas y no se presentan como funciones del portal.
 
 Quedan fuera calificación de exámenes, personas o datos estudiantiles reales, despliegue público, pruebas en la red universitaria, SOC profesional y dependencia de terceros durante la presentación. No se añadirá un servidor de base de datos, infraestructura cloud ni una aplicación frontend independiente sin necesidad justificada (F3, pp. 1–2; esta última simplificación es propuesta).
 
@@ -64,7 +67,7 @@ Todos los resultados siguientes son **esperados, no observados**. Fuente: F3 pp.
 | P2 Hora límite | Misma cuenta, fecha, asignación y original; reloj de ensayo 07:59:59 y 08:00:00; Windows intacto. | 403 sin documento y 200 con bytes iguales al original. Bitácora y huellas. |
 | P3 Integridad | A las 08:00 seleccionar copia alterada válidamente cifrada, descargar y restaurar original. | Huellas distintas, 409 sin documento, luego 200. Hashes y eventos; probar aparte tag GCM corrupto. |
 | P4 Tráfico | Misma marca ficticia por HTTP de ensayo y HTTPS del portal; captura sin claves de sesión. | Marca reconstruible en HTTP; payload cifrado en HTTPS; IP, puerto y SYN/SYN-ACK/ACK identificados. Dos flujos. |
-| P5 Red e identidad | Packet Tracer antes/después de VLAN; RADIUS válido/inválido; modelo Python con dispositivo docente no verificado. | Tráfico autorizado permitido; administración de alumnos bloqueada; identidad/estado indebidos rechazados. `.pkt`, configuración saneada y salida NAC por separado. |
+| P5 Red e identidad | No forma parte de este alcance de implementación. | No se atribuye filtrado de red, VLAN, RADIUS o NAC al portal. |
 | P6 Configuración web | Consultar cabeceras y cargar iframe desde otro origen local de ensayo. | `SAMEORIGIN`, `nosniff`, sin número de versión y bloqueo del iframe. Cabeceras, consola/captura del navegador. |
 | P7 Inyección SQL | Solo copia aislada: Nmap/NSE, reproducción manual y repetición tras parametrizar consulta. | Acceso indebido antes; intento rechazado y credencial válida aceptada después. Informes y respuestas. Puerto abierto no acredita SQLi. |
 | P8 Análisis y parche | CVE corregible de imagen/dependencia de ensayo; Bandit y Trivy antes/después; misma base de vulnerabilidades. | Hallazgo HIGH/CRITICAL bloquea promoción. Seguir CVE y versión corregida; promover solo con todos los controles aprobados. Informes, versiones, base utilizada y códigos de salida. |

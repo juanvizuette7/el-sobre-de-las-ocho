@@ -1,10 +1,13 @@
 # Identidad y control de acceso — etapa 2A
 
+Integración vigente de etapa4: **https://127.0.0.1:8443/acceso**. HTTP8080 solo redirige; PORTAL_ORIGIN HTTPS activa Secure además de HttpOnly/SameSite=Lax y mantiene CSRF de origen exacto. Login/logout/TOTP se verificaron por HTTPS, sin cambiar identidad, vigencia o secreto. No reinicializar cuentas existentes. [Red/certificados](SEGURIDAD_RED.md), [evidencia4](evidencias/etapa-04.md). QA ahora usa HTTPS8445 con volumen temporal propio; notas HTTP8081/tmpfs de entregas previas son históricas.
+
+
 Integración vigente: etapa 3 incorpora publicación/descarga sobre estas mismas identidades, TOTP, sesiones y política. No se reinicializan cuentas ni secretos. El procedimiento 2A sigue vigente; las menciones históricas a publicación pendiente se sustituyen por [CRIPTOGRAFIA_SOBRE.md](CRIPTOGRAFIA_SOBRE.md) y [evidencia 3](evidencias/etapa-03.md). `/descargar` sigue inexistente; la nueva ruta es `/evaluaciones/{id}/documento`. Los POST de carga tienen CSRF/origen y revalidación docente/MFA propios para multipart, conservando intactos los formularios de identidad.
 
 ## Alcance
 
-Autenticación real de dos cuentas ficticias, TOTP obligatorio docente, sesiones opacas persistentes, RBAC en servidor y auditoría de identidad. El portal conserva FastAPI/Uvicorn, Nginx, dos servicios Compose y publicación exclusiva en `127.0.0.1:8080`. SQLite se ejecuta dentro de Python, sin servicio adicional. Actualización 2B: asignaciones, reloj didáctico y ABAC de disponibilidad ya funcionan sobre metadatos; véase [AUTORIZACION_HORARIO.md](AUTORIZACION_HORARIO.md). Publicación, descargas, cifrado y laboratorios siguen sin implementar. Esta guía conserva el procedimiento de identidad de 2A.
+Autenticación real de cuentas de prueba, TOTP obligatorio docente, sesiones opacas persistentes, RBAC en servidor y auditoría de identidad. El portal conserva FastAPI/Uvicorn, Nginx y dos servicios Compose; Nginx publica solo loopback en `127.0.0.1:8080` (redirección) y `127.0.0.1:8443` (HTTPS). SQLite se ejecuta dentro de Python, sin servicio adicional. Actualizaciones 2B y 3: asignaciones, reloj, disponibilidad, publicación y descarga están documentadas en [AUTORIZACION_HORARIO.md](AUTORIZACION_HORARIO.md) y [CRIPTOGRAFIA_SOBRE.md](CRIPTOGRAFIA_SOBRE.md). Esta guía conserva el procedimiento de identidad de 2A.
 
 ## Ejecución e inicialización local
 

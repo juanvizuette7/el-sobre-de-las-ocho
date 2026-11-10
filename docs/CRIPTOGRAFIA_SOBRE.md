@@ -1,6 +1,9 @@
 # El sobre cifrado — etapa 3
 
-Implementación local de carga, protección, verificación y entrega de texto ficticio. Se conserva FastAPI/Uvicorn, Nginx, SQLite, el volumen `identidad`, las cuentas existentes, TOTP y el reloj de evaluaciones. F3 = `docs/planificacion/Fase_3_Diseno_El_sobre_de_las_ocho.pdf`, pp. 1–3 y 5–7. Los resultados observados se registran en [evidencia 3](evidencias/etapa-03.md). Etapas 4–6 pendientes.
+Integración de etapa 4: entrada **https://127.0.0.1:8443**, con sobre y política conservados. El documento existente se recuperó con GCM/SHA correctos sin sustituir RSA/TOTP. Los ejemplos HTTP siguientes describen el cierre histórico de etapa 3 y ahora redirigen; comandos de reloj/sobre sin cambios. [Seguridad de red](SEGURIDAD_RED.md) y [evidencia 4](evidencias/etapa-04.md) describen el estado vigente.
+
+
+Implementación local de carga, protección, verificación y entrega de texto ficticio. Se conserva FastAPI/Uvicorn, Nginx, SQLite, el volumen `identidad`, las cuentas existentes, TOTP y el reloj de evaluaciones. F3 = `docs/planificacion/Fase_3_Diseno_El_sobre_de_las_ocho.pdf`, pp. 1–3 y 5–7. Los resultados se registran en [evidencia 3](evidencias/etapa-03.md); la capa TLS de etapa 4 está resumida en [evidencia 4](evidencias/etapa-04.md).
 
 ## Flujo y responsabilidades
 
@@ -87,7 +90,7 @@ Docker Desktop Linux activo; cuentas 2A ya inicializadas. No volver a inicializa
 ```bat
 cd /d C:\Users\juanv\Proyectos\el-sobre-de-las-ocho
 docker compose up -d --build --wait --wait-timeout 120
-start http://127.0.0.1:8080/acceso
+start https://127.0.0.1:8443/acceso
 docker compose exec app python -m app.demo preparar --fecha 2026-11-09
 ```
 
@@ -163,4 +166,4 @@ node scripts\verificar_identidad.cjs
 
 Fuentes comprobadas: C1, `Semana 1 comunicación y seguridad informatica (martes 1ro de septiembre) CORRECTA.pdf`, p. 7 (simetría/asimetría/hashes), pp. 9–11 (AES-CBC/OpenSSL), pp. 12–13 (edición y hash MD5). GCM/OAEP/SHA-256 son las decisiones del proyecto, no algoritmos atribuidos al taller. C4 pp. 4–7 y 15 relaciona AAA, MFA, RBAC/ABAC y mínimo privilegio según la matriz ya existente. F3 pp. 1–3 y 6 exige publicación, límite inclusivo, original idéntico y copia distinta con huella conservada. No se acreditan P4–P10 ni nuevas prácticas de red con estos resultados.
 
-HTTP local continúa sin cifrado de transporte; HTTPS, Wireshark, Packet Tracer y NAC corresponden a etapa 4. Cifrado en reposo no sustituye TLS. No se incorporan SQLi, carga/DoS o DevSecOps completos, ni PDF/diapositivas finales.
+TLS protege el tránsito y complementa el cifrado en reposo. La etapa 4 añade HTTPS y captura Wireshark del portal; no incluye laboratorios independientes Cisco/NAC/ARP. No se incorporan SQLi, carga/DoS o DevSecOps completos, ni PDF/diapositivas finales.

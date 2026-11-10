@@ -1,5 +1,8 @@
 # Guía de ejecución en Windows — etapas 1, 2A y 2B
 
+Entrada vigente de etapa 4: **https://127.0.0.1:8443/acceso**. Desde CMD usar `scripts\preparar_https.cmd` y seguir [SEGURIDAD_RED.md](SEGURIDAD_RED.md) para comprobar HTTPS y usar Wireshark con el puerto 8443. El script no instala confianza. Las instrucciones de etapas anteriores que siguen conservan su contexto histórico. No borrar identidad ni regenerar claves del examen para activar HTTPS.
+
+
 Los comandos de uso y pruebas están completos en [README.md](../README.md). Están escritos para **CMD**, sin variables o sintaxis exclusivas de PowerShell. Abre Docker Desktop con motor Linux antes de ejecutarlos. Internet es necesario para la primera construcción; con imágenes construidas puedes volver a iniciar sin reinstalar.
 
 ## Actualización 2B
@@ -11,7 +14,7 @@ La política y todos los comandos están en [AUTORIZACION_HORARIO.md](AUTORIZACI
     docker compose exec app python -m app.demo reloj fijar 2026-11-09T08:00:00
     docker compose exec app python -m app.demo auditoria --limite 20
 
-No hay bibliotecas adicionales: ZoneInfo y America/Bogota se comprobaron en el contenedor. TOTP y sesiones conservan tiempo real. Sin descarga aún. Resultados en la ficha de etapa 2B.
+No hay bibliotecas adicionales: ZoneInfo y America/Bogota se comprobaron en el contenedor. TOTP y sesiones conservan tiempo real. La descarga protegida está integrada según la [guía de etapa 3](CRIPTOGRAFIA_SOBRE.md).
 
 ## Actualización 2A
 
@@ -20,7 +23,7 @@ Acceso y aprovisionamiento: [IDENTIDAD_ACCESO.md](IDENTIDAD_ACCESO.md). Nuevas d
 ```bat
 docker compose up -d --build --wait --wait-timeout 120
 docker compose exec app python -m app.manage inicializar
-start http://127.0.0.1:8080/acceso
+start https://127.0.0.1:8443/acceso
 ```
 
 Alta interactiva con dos contraseñas propias y confirmación de TOTP local. No hay contraseña por defecto ni registro web. No usar `down -v`: elimina la identidad persistente. El inventario de versiones de la sección siguiente corresponde a la base de etapa 1 conservada. La prueba de salud mantiene `etapa: 1` por compatibilidad del contrato; no indica que la autenticación esté ausente.
@@ -45,16 +48,16 @@ Fecha local de referencia: 9 de noviembre de 2026, zona de Bogotá. No se usa la
 | Disco C | Aproximadamente 170 GiB libres antes de construir |
 | Estado inicial Docker | Sin imágenes, contenedores ni volúmenes; se descargaron los necesarios |
 | Puerto | 8080 sin escucha al comienzo; ahora reservado al Nginx del proyecto |
-| OpenSSL en PATH | No encontrado; no es necesario para HTTP de etapa 1. Preparación de TLS pendiente |
+| OpenSSL en PATH | No encontrado; HTTPS usa certificados generados por `app.certificates` |
 
-No se verificaron todavía Bandit, Trivy, Nmap, Wireshark o Packet Tracer: corresponden a las etapas siguientes. Las imágenes se fijan por digest en Dockerfile/Compose; las bibliotecas exactas están en los dos archivos `requirements*.txt`. Las actualizaciones se harán con pruebas, no cambiando estos valores a ciegas.
+No se verifican aquí Bandit, Trivy o Nmap, que corresponden a etapas posteriores. Wireshark se usa para observar TLS del portal real; Cisco Packet Tracer y los laboratorios NAC/ARP se retiraron del alcance. Las imágenes se fijan por digest en Dockerfile/Compose; las bibliotecas exactas están en los dos archivos `requirements*.txt`.
 
 ## Sesión cotidiana en CMD
 
 ```bat
 cd /d C:\Users\juanv\Proyectos\el-sobre-de-las-ocho
 docker compose up -d --build --wait --wait-timeout 120
-start http://127.0.0.1:8080
+start https://127.0.0.1:8443/acceso
 ```
 
 Después de editar Python, plantillas, CSS o JavaScript, vuelve a ejecutar el `up` con `--build`: el código está copiado a la imagen, no montado con recarga automática. Refresca el navegador. El montaje Nginx es de solo lectura; después de cambiar su configuración ejecuta `docker compose exec nginx nginx -t` y, si pasa, `docker compose restart nginx`.

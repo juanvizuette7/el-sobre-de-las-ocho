@@ -1,5 +1,8 @@
 # Autorización por atributos y control horario — etapa 2B
 
+Etapa4: entrada HTTPS8443, con referencia y decisión horaria conservadas. Los comandos CMD siguientes mantienen su comportamiento. Regresión de07:59:59/08:00/sin asignación y entrega íntegra ejecutada por HTTPS. [Seguridad de red](SEGURIDAD_RED.md), [evidencia4](evidencias/etapa-04.md). Las URL HTTP históricas redirigen, sin acceso alternativo sensible.
+
+
 Integración vigente: etapa 3 reutiliza esta política para documentos reales. Disponibilidad añade metadatos/estado del sobre; con archivo íntegro y autorización devuelve `descarga_habilitada: true`, y ante fallo criptográfico devuelve 409. Sin archivo conserva el comportamiento 2B. La consulta no envía bytes del examen; GET `/evaluaciones/{id}/documento` revalida y entrega después de GCM/SHA. [Detalle](CRIPTOGRAFIA_SOBRE.md). Los comandos siguientes se conservan. El botón actual se llama **Comprobar acceso**; las notas sin archivo describen el cierre histórico de 2B.
 
 ## Alcance y estado

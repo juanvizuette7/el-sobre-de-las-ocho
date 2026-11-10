@@ -18,19 +18,21 @@ async function verificar() {
     pagina.on("pageerror", (error) => errores.push(error.message));
     const peticionesExternas = [];
     pagina.on("request", (request) => {
-      if (!request.url().startsWith("http://127.0.0.1:8080/"))
+      if (!request.url().startsWith("https://127.0.0.1:8443/"))
         peticionesExternas.push(request.url());
     });
     for (const ancho of [1440, 768, 390, 320]) {
       await pagina.setViewportSize({ width: ancho, height: 900 });
-      const respuesta = await pagina.goto("http://127.0.0.1:8080/", {
+      const respuesta = await pagina.goto("https://127.0.0.1:8443/", {
         waitUntil: "networkidle",
       });
       assert.equal(respuesta.status(), 200);
       await pagina.locator("h1").waitFor();
       // Medimos el estado final, sin muestrear colores durante la entrada animada.
       await pagina.locator(".envelope-art").evaluate(async (elemento) => {
-        await Promise.all(elemento.getAnimations().map((animacion) => animacion.finished));
+        await Promise.all(
+          elemento.getAnimations().map((animacion) => animacion.finished),
+        );
       });
       assert.equal(
         await pagina.evaluate(
@@ -136,7 +138,7 @@ async function verificar() {
       javaScriptEnabled: false,
     });
     const paginaSimple = await sinJavaScript.newPage();
-    await paginaSimple.goto("http://127.0.0.1:8080/");
+    await paginaSimple.goto("https://127.0.0.1:8443/");
     assert.equal(await paginaSimple.locator("noscript a").isVisible(), true);
     await paginaSimple.locator("noscript a").click();
     assert.match(

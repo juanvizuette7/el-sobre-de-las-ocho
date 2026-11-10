@@ -5,11 +5,14 @@ No sustituye P1–P10 ni realiza pruebas ofensivas.
 """
 
 import json
+import ssl
+from pathlib import Path
 import subprocess
 import urllib.error
 import urllib.request
 
-URL_PORTAL = "http://127.0.0.1:8080"
+URL_PORTAL = "https://127.0.0.1:8443"
+CONTEXTO_TLS = ssl.create_default_context(cafile=str(Path(__file__).resolve().parents[1] / "certs/ca/ca.crt"))
 
 
 def comando_docker(*argumentos: str) -> str:
@@ -26,6 +29,7 @@ def comprobar(condicion: bool, descripcion: str) -> None:
 
 def verificar() -> None:
     """Valida exposición, salud y respuestas del proxy que se está ejecutando."""
+    abrir = lambda url, timeout=5: urllib.request.urlopen(url, timeout=timeout, context=CONTEXTO_TLS)
     configuracion = json.loads(comando_docker("compose", "config", "--format", "json"))
     comprobar(set(configuracion["services"]) == {"app", "nginx"}, "exactamente dos servicios principales")
     for servicio in ["app", "nginx"]:
@@ -43,10 +47,10 @@ def verificar() -> None:
             red = json.loads(comando_docker("network", "inspect", next(iter(redes))))[0]
             comprobar(red["Internal"], "la red de FastAPI es interna")
         else:
-            comprobar(enlaces == {"8080/tcp": [{"HostIp": "127.0.0.1", "HostPort": "8080"}]}, "Nginx solo publica 127.0.0.1:8080")
+            comprobar(enlaces == {"8080/tcp": [{"HostIp": "127.0.0.1", "HostPort": "8080"}], "8443/tcp": [{"HostIp": "127.0.0.1", "HostPort": "8443"}]}, "Nginx solo publica 127.0.0.1:8080/8443")
 
-    with urllib.request.urlopen(URL_PORTAL + "/health", timeout=5) as respuesta:
-        comprobar(respuesta.status == 200, "salud HTTP 200 a través de Nginx")
+    with abrir(URL_PORTAL + "/health", timeout=5) as respuesta:
+        comprobar(respuesta.status == 200, "salud HTTPS 200 con CA y SAN validados a través de Nginx")
         comprobar(json.load(respuesta) == {"status": "ok", "servicio": "el-sobre-de-las-ocho", "etapa": 1}, "contrato JSON de salud")
         comprobar(respuesta.headers.get("Server") == "nginx", "banner sin número de versión")
         comprobar(respuesta.headers.get("X-Content-Type-Options") == "nosniff", "cabecera nosniff")
@@ -54,11 +58,11 @@ def verificar() -> None:
         comprobar(bool(respuesta.headers.get("Content-Security-Policy")), "política de recursos del mismo origen")
 
     for ruta, tipo in [("/", "text/html"), ("/static/styles.css", "text/css"), ("/static/main.js", "javascript"), ("/static/favicon.svg", "image/svg+xml")]:
-        with urllib.request.urlopen(URL_PORTAL + ruta, timeout=5) as respuesta:
+        with abrir(URL_PORTAL + ruta, timeout=5) as respuesta:
             comprobar(respuesta.status == 200 and tipo in respuesta.headers["Content-Type"], f"recurso y tipo de contenido {ruta}")
     for ruta in ["/.env", "/docs/RESUMEN_PROYECTO.md", "/docente", "/descargar"]:
         try:
-            urllib.request.urlopen(URL_PORTAL + ruta, timeout=5)
+            abrir(URL_PORTAL + ruta, timeout=5)
         except urllib.error.HTTPError as error:
             comprobar(error.code == (401 if ruta == "/docente" else 404), f"ruta protegida o no publicada {ruta}")
         else:
