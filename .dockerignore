@@ -1,0 +1,12 @@
+# Lista permitida: los PDF, secretos y .git nunca entran al contexto de construcción.
+**
+!Dockerfile
+!requirements.txt
+!requirements-dev.txt
+!pytest.ini
+!app/
+!app/**
+!tests/
+!tests/**
+**/__pycache__/
+**/*.pyc

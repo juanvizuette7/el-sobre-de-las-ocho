@@ -1,6 +1,27 @@
 # Arquitectura prevista
 
-**Estado: propuesta de implementación basada en Fase 3; ningún componente está construido o verificado.** F3 = `docs/planificacion/Fase_3_Diseno_El_sobre_de_las_ocho.pdf`, páginas físicas. Requisitos y respuestas HTTP: [RESUMEN_PROYECTO.md](RESUMEN_PROYECTO.md). Fuentes docentes: [MATRIZ_CLASES.md](MATRIZ_CLASES.md).
+**Estado: etapa 1 implementada; las funciones del examen y etapas 2–6 siguen siendo diseño.** F3 = `docs/planificacion/Fase_3_Diseno_El_sobre_de_las_ocho.pdf`, páginas físicas. Requisitos y respuestas HTTP: [RESUMEN_PROYECTO.md](RESUMEN_PROYECTO.md). Fuentes docentes: [MATRIZ_CLASES.md](MATRIZ_CLASES.md). Resultados observados: [evidencia de etapa 1](evidencias/etapa-01.md).
+
+## Implementación actual de etapa 1
+
+La implementación utiliza FastAPI + Uvicorn (ASGI), Jinja2 y `http://127.0.0.1:8080`, conforme a la especificación de etapa 1. Los requisitos centrales de F3 se mantienen. HTTPS se reserva para la etapa 4; el diagrama y las reglas del examen de abajo describen el **objetivo futuro**, todavía pendiente de implementación.
+
+La interfaz presenta funcionalidades de producto: portal docente, portal estudiante y referencia informativa a un laboratorio administrativo no habilitado. No existen rutas ni controles de laboratorio y no se implementa todavía autenticación. Las seis etapas de construcción se documentan exclusivamente fuera de la interfaz. El ajuste de presentación conserva la ilustración, la paleta, los componentes y la arquitectura.
+
+Rutas actuales: `GET /` renderiza la portada; `GET /health` devuelve `status`, `servicio` y `etapa`; `/static` sirve únicamente recursos de interfaz. Documentación interactiva API desactivada para no depender de CDN. No hay login, examen, SQLite creado, claves o estado de sesión; no se requieren secretos ni `.env` todavía. Tampoco se crean módulos vacíos de autenticación/configuración por anticipado.
+
+```text
+Windows/navegador → 127.0.0.1:8080 → Nginx:8080 → app:8000 → FastAPI/Uvicorn
+                                      │              │
+                                 red entrada    red interna portal
+                                 + red portal   (solo esta red)
+```
+
+Nginx requiere una red de entrada para publicar correctamente el puerto en Docker Desktop. La primera prueba con ambos contenedores solo en red interna dio conexión rechazada desde Windows pese a healthchecks correctos; se corrigió sin publicar Python. El DNS interno de Docker resuelve `app`; Nginx renueva esa resolución para recuperarse si cambia la IP del contenedor al recrearlo.
+
+Ambos contenedores ejecutan sin root, con capacidades retiradas, `no-new-privileges`, raíz de solo lectura y `/tmp` temporal. Límites: Python 256 MiB/1 CPU, Nginx 64 MiB/0,5 CPU. No son garantías contra todos los ataques. Cabeceras básicas ya activas: `SAMEORIGIN`, `nosniff`, versión oculta, Referrer-Policy y CSP del mismo origen. Esto anticipa buenas prácticas, sin dar por realizado P6 (falta el taller de iframe) ni el bastionado completo. No hay cuotas ni TLS todavía.
+
+Dependencias directas y transitivas fijadas en `requirements.txt`; pytest y httpx2 están solo en el destino `test` del Dockerfile. Python/Nginx se fijan por digest. `.dockerignore` permite solo código, pruebas y requisitos: PDF, Git y secretos quedan fuera del contexto. No se monta Docker socket ni la carpeta del proyecto en la aplicación. Véase [README](../README.md) para comandos CMD y mapa de archivos existentes.
 
 ## Componentes y comunicación
 
@@ -23,7 +44,7 @@ La aplicación normal tiene **dos servicios Compose**, Nginx y Python; SQLite es
 | Pieza | Tecnología y responsabilidad | Decisión / fuente |
 |---|---|---|
 | Interfaz | HTML generado en servidor, CSS y JavaScript mínimo. Dos vistas según rol y bitácora docente. | Propuesta de sencillez; vistas en F3 p. 1. |
-| Aplicación | Python; propuesta Flask con plantillas Jinja y servidor WSGI para contenedor, sin modo debug. | Python exigido por F3 p. 2; framework y servidor concretos por fijar en etapa 1. |
+| Aplicación | Python con FastAPI, Jinja2 y Uvicorn ASGI; sin debug/recarga automática. | Especificación de etapa 1; implementada en `app/main.py`. |
 | Proxy | Nginx, HTTPS, cabeceras y cuotas. | F3 pp. 2–3; TLS/cabeceras en etapa 4 y cuota en 5. |
 | Persistencia | SQLite, archivo local en volumen; consultas parametrizadas y transacciones. | SQLite en F3 pp. 2–3; detalles propuestos. |
 | Criptografía | Biblioteca `cryptography` propuesta; AES-GCM, RSA-OAEP y SHA-256. | Variantes exigidas por petición y previstas por F3 p. 3. No criptografía artesanal. |
@@ -32,7 +53,7 @@ La aplicación normal tiene **dos servicios Compose**, Nginx y Python; SQLite es
 | Ensayo | Utilidad de terminal ejecutada dentro del servicio, sin endpoint administrativo público. | Control local en F3 pp. 1–3. |
 | Herramientas | Git, OpenSSL, Wireshark, Packet Tracer, Bandit, Trivy, Nmap/NSE y ApacheBench. | F3 pp. 2–4. No deben ser servicios permanentes del portal. |
 
-No se fijan hoy versiones ni imágenes descargables: no se instalaron dependencias ni se consultó un catálogo externo. La etapa 1 registrará versiones y posteriormente se fijarán imágenes por versión/digest para repetir ensayos. La demostración debe funcionar sin Internet una vez preparadas imágenes, herramientas y base Trivy.
+Las versiones de la etapa 1 están registradas en [GUIA_WINDOWS.md](GUIA_WINDOWS.md) y las imágenes fijadas por digest. Se consultaron documentación oficial y metadatos de paquetes/imágenes para construir esta etapa; los PDF no se reprocesaron. Las bibliotecas criptográficas y herramientas futuras se elegirán al implementarlas. La demostración final debe funcionar sin Internet una vez preparadas imágenes, herramientas y base Trivy.
 
 ## Fronteras de confianza
 
@@ -108,13 +129,13 @@ P9 exige como máximo 100 peticiones, concurrencia 5, cuota de 5 r/s/IP y margen
 
 ## Mapa de archivos futuros
 
-**Todos estos nombres son propuestas, no archivos existentes.** Su función es permitir trazabilidad antes de programar.
+El mapa combina archivos **existentes de etapa 1** (Compose, Dockerfile, requisitos, Nginx, `app/main.py`, plantillas/estáticos y guía Windows) con módulos futuros. Autenticación, política, reloj, criptografía, almacenamiento, auditoría y laboratorios **todavía no existen**. El mapa actual completo está en README; sus nombres prevalecen sobre las propuestas de este diseño.
 
 | Ruta propuesta | Responsabilidad |
 |---|---|
 | `compose.yaml`, `Dockerfile`, `requirements.txt` | Servicios normales, empaquetado y dependencias fijadas |
 | `infra/nginx/default.conf` | Proxy, TLS, cabeceras, logs y cuota |
-| `app/__init__.py`, `app/config.py` | Creación de aplicación y configuración |
+| `app/__init__.py`, `app/main.py` | Paquete y entrada FastAPI implementados; `app/config.py` se pospone hasta necesitar configuración |
 | `app/auth.py`, `app/policy.py`, `app/clock.py` | Identidad/TOTP, permisos/descarga y reloj didáctico |
 | `app/crypto.py`, `app/storage.py`, `app/db.py`, `app/audit.py` | Sobre, persistencia, consultas y eventos |
 | `app/templates/`, `app/static/styles.css` | Vistas y diseño accesible |
@@ -130,4 +151,4 @@ La UI propuesta usa el sobre sellado como identidad visual, jerarquía clara, ti
 
 ## Decisiones pendientes acotadas
 
-En etapa 1: framework/WSGI, versiones, puerto, recursos y diseño inicial. En etapa 2: política de TOTP, caducidad y protección de secretos. En etapa 3: formato del sobre, atomicidad y errores no fijados por F3. En etapa 4: certificado confiable y soporte concreto de Packet Tracer. En etapa 5: CVE corregible, umbrales de Bandit y versión/base Trivy. Son decisiones de ejecución; no autorizan sustituir tecnologías centrales ni iniciar otra etapa.
+Etapa 1 resuelve framework/ASGI, versiones, puerto, recursos y diseño inicial. En etapa 2 siguen pendientes política TOTP, caducidad y protección de secretos. En etapa 3: formato del sobre, atomicidad y errores no fijados por F3. En etapa 4: certificado confiable y soporte concreto de Packet Tracer. En etapa 5: CVE corregible, umbrales de Bandit y versión/base Trivy. No se autoriza iniciar otra etapa.

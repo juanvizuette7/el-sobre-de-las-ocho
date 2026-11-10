@@ -1,12 +1,14 @@
 # Plan de implementación
 
-**Estado: planificación inicial terminada; las seis etapas de construcción están pendientes.** No se ha programado ni ejecutado ningún laboratorio. Fuente principal: `docs/planificacion/Fase_3_Diseno_El_sobre_de_las_ocho.pdf` (F3), especialmente pp. 5–7. Se conservan nombres, orden y estimaciones de sus seis etapas.
+**Estado: etapa 1 implementada; etapas 2–6 y P1–P10 pendientes.** Fuente principal: `docs/planificacion/Fase_3_Diseno_El_sobre_de_las_ocho.pdf` (F3), especialmente pp. 5–7. Se conservan nombres, orden y estimaciones de sus seis etapas. Resultados observados en [evidencia etapa 1](evidencias/etapa-01.md).
 
-Se trabajará un paso cada vez: preparar el cambio, comprobarlo en Windows, guardar resultado y obtener confirmación antes de continuar según F3 p. 5 y la petición actual. Este documento no autoriza iniciar las seis etapas. Las rutas son propuestas detalladas en [ARQUITECTURA.md](ARQUITECTURA.md); las fuentes docentes y cobertura están en [MATRIZ_CLASES.md](MATRIZ_CLASES.md).
+El alcance actual comprende únicamente la etapa 1 y su revisión de presentación, con verificación en Windows. La etapa 2 permanece pendiente de autorización. Las rutas iniciales son propuestas en [ARQUITECTURA.md](ARQUITECTURA.md); README recoge las existentes. Las fuentes docentes y cobertura están en [MATRIZ_CLASES.md](MATRIZ_CLASES.md). El seguimiento de las seis etapas se conserva en este documento; la interfaz se organiza por funcionalidades del producto.
 
 ## Etapa 1 · Preparar — 3–4 h
 
 Objetivo F3 p. 5: portal mínimo local que vuelve a abrir después de reiniciar servicios y expone solo la entrada prevista.
+
+Decisiones ejecutadas: FastAPI/Uvicorn/Jinja2, HTTP inicial `127.0.0.1:8080`, dos servicios, Python sin puerto publicado, Nginx con entrada y red interna. Se crearon pruebas de contrato y verificadores de infraestructura/interfaz. La verificación y límites del cierre se detallan en la ficha de evidencia. Adaptaciones a las tareas originales: no se necesita `app/config.py` ni `.env.example` porque aún no hay parámetros secretos; no se inventa un secreto obligatorio. La guía se entrega en CMD según la petición actual. SQLite sigue siendo la persistencia prevista, sin base creada en esta etapa.
 
 | Tarea pequeña | Entregable futuro | Aceptación / comprobación |
 |---|---|---|
@@ -100,4 +102,4 @@ Guion F3 p. 7: minuto 0–1 problema y cuentas; 1–4 rechazo horario, original 
 
 Pruebas unitarias/integración previstas para reglas críticas: identidad/MFA, política horaria y asignación, cifrado e integridad antes de salida, auditoría, NAC y restauración. Usar reloj de apertura inyectable y fixtures ficticios, no esperas reales hasta las 08:00. Pruebas HTTP a través de Nginx para TLS, cabeceras y cuota; revisión manual para diseño, Packet Tracer y captura de tráfico. No escribir pruebas que solo comprueben que un archivo existe o reflejen sin criterio la implementación.
 
-Una etapa solo se cierra cuando sus criterios tienen resultados observados y evidencia. La matriz registra pendiente, implementado sin verificar, verificado o fallido. Errores no se convierten en éxitos documentales. La siguiente acción tras autorizar programación es **1.1: comprobar entorno y recursos**; luego concretar el portal mínimo de etapa 1, sin anticipar etapas posteriores.
+Una etapa solo se cierra cuando sus criterios tienen resultados observados y evidencia. La matriz registra pendiente, implementado sin verificar, verificado o fallido. Errores no se convierten en éxitos documentales. Etapa 1 se entrega con su ficha; la siguiente acción, únicamente tras autorización, corresponde a **etapa 2: identificar**.

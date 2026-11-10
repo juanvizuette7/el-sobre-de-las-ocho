@@ -1,6 +1,17 @@
 # Matriz de clases, aplicación y evidencia
 
-**Estado global: planificación. No hay funcionalidades implementadas, pruebas ejecutadas ni evidencias de laboratorio generadas.** «Real prevista» describe la modalidad futura, no un resultado conseguido. Todos los archivos de código/configuración citados son **rutas propuestas que todavía no existen**; véase [ARQUITECTURA.md](ARQUITECTURA.md).
+**Estado global: portal mínimo de etapa 1 implementado; prácticas del examen P1–P10 pendientes.** «Real prevista» en la matriz del semestre describe la modalidad futura, no una práctica ya aprobada. Las rutas de autenticación, criptografía y laboratorios siguen siendo propuestas; Compose, FastAPI, Nginx, plantillas, estáticos y pruebas básicas ya existen. Véanse [ARQUITECTURA.md](ARQUITECTURA.md) y [evidencia de etapa 1](evidencias/etapa-01.md).
+
+## Aplicación parcial verificada en etapa 1
+
+| Clase y fuente | Implementación real de esta etapa | Archivos existentes | Comprobación / límite |
+|---|---|---|---|
+| 2, C2 pp. 4, 9–10, 16–18 | Peticiones/respuestas HTTP, IP local y puertos, proxy hacia servicio interno | `app/main.py`, `compose.yaml`, `infra/nginx/default.conf` | Portada y salud por Nginx; falta captura Wireshark y comparación HTTPS para P4 |
+| 5, C5 pp. 4, 8–14 | Nginx/Compose, versión oculta, SAMEORIGIN, nosniff; configuración de solo lectura | `infra/nginx/`, `compose.yaml` | Cabeceras y `nginx -t` comprobados; no se ha hecho el iframe de P6 ni el taller completo |
+| 6, C6 pp. 5–8 | Separación de entrada y aplicación, puerto único local; relación conceptual con mínimo privilegio | `compose.yaml`, `Dockerfile` | Python sin publicación, red interna, ejecución sin root; esto no implementa NAC, VLAN ni firewall con estado |
+| 7, C7 pp. 4, 6–7, 13–14 | Dependencias/imágenes fijadas, construcción reproducible y pytest local | `requirements*.txt`, `Dockerfile`, `tests/test_portal.py` | Pruebas básicas ejecutadas; no hay todavía Bandit/Trivy, análisis CVE ni barrera P8 |
+
+La evidencia de infraestructura no completa las filas del semestre. Clases 1, 3, 4, 8, 9 y 10 no tienen sus prácticas implementadas en esta etapa. El arte del sobre y el texto 08:00 son ilustrativos, no cifrado ni reloj funcional.
 
 ## Inventario y convención de citas
 

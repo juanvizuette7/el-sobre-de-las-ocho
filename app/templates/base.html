@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="El sobre de las ocho. Plataforma de gestión segura de evaluaciones. Versión inicial: funciones de evaluación pendientes de habilitación.">
+  <meta name="theme-color" content="#173f39">
+  <title>{% block title %}El sobre de las ocho · Gestión de evaluaciones{% endblock %}</title>
+  <link rel="icon" href="{{ url_for('static', path='/favicon.svg') }}" type="image/svg+xml">
+  <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}">
+  <script src="{{ url_for('static', path='/main.js') }}" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#contenido">Saltar al contenido</a>
+  {% block content %}{% endblock %}
+</body>
+</html>

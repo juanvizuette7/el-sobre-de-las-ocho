@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% from 'components.html' import icon, area %}
+{% block content %}
+<div class="app-shell">
+  <aside class="sidebar" aria-label="Identidad y navegación">
+    <a class="brand" href="#inicio">
+      <span class="brand-symbol">{{ icon('sobre') }}</span>
+      <span>EL SOBRE<br>DE LAS OCHO<span class="brand-caption">GESTIÓN DE EVALUACIONES</span></span>
+    </a>
+    <p class="nav-label">LA PLATAFORMA</p>
+    <nav aria-label="Navegación principal">
+      <a class="nav-link" href="#inicio">{{ icon('inicio') }}<span>Inicio</span><span class="nav-dot" aria-hidden="true"></span></a>
+      <a class="nav-link" href="#areas">{{ icon('areas') }}<span>Áreas del portal</span></a>
+      <a class="nav-link" href="#estado">{{ icon('pulso') }}<span>Estado del servicio</span></a>
+    </nav>
+    <div class="sidebar-note"><span class="mini-label">CONDICIONES DE ENTREGA</span><p>Identidad, horario<br>e integridad.</p><span>Gestión de evaluaciones pendiente de habilitación.</span></div>
+    <div class="sidebar-footer">Universidad Cooperativa<br>de Colombia<span>PROYECTO ACADÉMICO · 2026</span></div>
+  </aside>
+
+  <div class="workspace">
+    <header class="topbar"><span>Gestión segura de evaluaciones</span><span class="local-label"><span aria-hidden="true">●</span> Entorno local</span></header>
+    <main id="contenido">
+      <section class="hero section-anchor" id="inicio" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <div class="eyebrow"><span class="tiny-line"></span> EL SOBRE DE LAS OCHO</div>
+          <h1 id="hero-title">Cada examen,<br>a su debido<br><em>tiempo.</em></h1>
+          <p class="hero-description">La persona correcta. El momento indicado.<br>El documento original.</p>
+          <p class="hero-context">Una plataforma de gestión de evaluaciones con condiciones de identidad, autorización, horario e integridad del documento.</p>
+          <a class="primary-link" href="#areas">Conocer el portal {{ icon('flecha') }}</a>
+          <div class="hero-footnote">{{ icon('info') }}<span>La entrega de exámenes aún no está habilitada.</span></div>
+        </div>
+        <figure class="envelope-scene">
+          <div class="scene-grid" aria-hidden="true"></div>
+          <div class="scene-top"><span>EL CONTENIDO IMPORTA.</span><span>LA FORMA DE ENTREGARLO, TAMBIÉN.</span></div>
+          <div class="envelope-art" aria-hidden="true">
+            <div class="exam-paper"><span>DOCUMENTO ACADÉMICO</span><b>El conocimiento<br>merece cuidado.</b><i></i><i></i><i></i><span class="paper-number">N.º 001 / LABORATORIO</span></div>
+            <div class="envelope-back"></div><div class="envelope-front"></div><div class="envelope-fold"></div>
+            <div class="seal"><span>EL SOBRE</span><b>08</b><span>DE LAS OCHO</span></div>
+          </div>
+          <div class="scene-bottom"><span class="scene-mark" aria-hidden="true">08:00</span><figcaption>El documento correcto.<br><strong>En el momento indicado.</strong><small>Ilustración conceptual · cifrado y horario pendientes</small></figcaption></div>
+        </figure>
+      </section>
+
+      <section class="build-note" aria-label="Disponibilidad de funciones"><span class="build-badge">VERSIÓN INICIAL</span><p>Portal informativo disponible. <span>La autenticación y la gestión de evaluaciones están pendientes de habilitación.</span></p><a href="#estado">Estado del servicio {{ icon('flecha') }}</a></section>
+
+      <section class="areas section-anchor" id="areas" aria-labelledby="areas-title">
+        <div class="section-heading"><div><p class="eyebrow">FUNCIONALIDADES PREVISTAS</p><h2 id="areas-title">Áreas de la plataforma.</h2></div><span class="section-index">EL PORTAL</span></div>
+        <div class="area-grid">
+          {{ area('01', 'Portal docente', 'docente', 'Publicación de evaluaciones y administración de sus condiciones de entrega.', ['Publicación del documento', 'Asignación y apertura', 'Consulta de auditoría']) }}
+          {{ area('02', 'Portal estudiante', 'estudiante', 'Acceso al documento asignado una vez verificadas las condiciones de entrega.', ['Identificación personal', 'Validación de permisos', 'Descarga del original']) }}
+          {{ area('03', 'Laboratorio de seguridad', 'laboratorio', 'Área prevista para la administración de controles y ensayos en un entorno aislado.', ['Uso exclusivo de administración', 'Operación sujeta a autorización', 'Sin acceso operativo en esta versión'], 'Acceso administrativo pendiente de habilitación') }}
+        </div>
+      </section>
+
+      <section class="health-panel section-anchor" id="estado" aria-labelledby="health-title">
+        <div class="health-icon">{{ icon('pulso') }}</div>
+        <div class="health-copy"><p class="eyebrow">DISPONIBILIDAD DEL PORTAL</p><h2 id="health-title">Estado del servicio</h2><p>Consulta la disponibilidad del portal.</p><p id="health-result" class="health-result" role="status" aria-live="polite">Estado sin consultar.</p><noscript><p>JavaScript está desactivado. Puedes consultar <a href="/health">el estado en formato JSON</a>.</p></noscript></div>
+        <button class="health-button" id="health-check" type="button">Comprobar conexión {{ icon('flecha') }}</button>
+      </section>
+    </main>
+    <footer class="page-footer"><span>EL SOBRE DE LAS OCHO <span aria-hidden="true">/</span> Gestión segura de evaluaciones.</span><span>Datos ficticios · Uso académico local</span></footer>
+  </div>
+</div>
+{% endblock %}

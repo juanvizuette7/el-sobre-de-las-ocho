@@ -1,6 +1,86 @@
 # Guía del estudiante: entender el sobre
 
-**Todavía estamos en diseño.** Esta guía explica lo que se construirá; no describe funciones ya disponibles. La especificación principal es `docs/planificacion/Fase_3_Diseno_El_sobre_de_las_ocho.pdf` (F3). Para relacionar cada explicación con la clase y página original, consulta [MATRIZ_CLASES.md](MATRIZ_CLASES.md).
+**La etapa 1 ya tiene un portal real; el examen protegido sigue en diseño.** La primera parte explica lo implementado. Las secciones sobre cifrado, cuentas, reloj y laboratorios describen etapas futuras, todavía pendientes. La especificación principal es `docs/planificacion/Fase_3_Diseno_El_sobre_de_las_ocho.pdf` (F3). Para relacionar cada explicación con la clase y página original, consulta [MATRIZ_CLASES.md](MATRIZ_CLASES.md).
+
+## Lo que ya puedes abrir
+
+Con Docker Desktop activo, ejecuta los comandos CMD de [README](../README.md) y abre `http://127.0.0.1:8080`. Verás una portada con las áreas previstas de docente, estudiante y laboratorio administrativo. Los enlaces navegan a inicio, áreas y estado del servicio. Las seis etapas quedan en PLAN_IMPLEMENTACION, fuera del producto. Las tarjetas «Pendiente» no publican, descargan ni simulan ataques; el laboratorio no tiene ruta de acceso ni controles. El sobre dibujado con CSS es una ilustración; el número 08:00 no es un reloj activo.
+
+El botón **Comprobar conexión** sí funciona: pide `/health` al servidor. Solo indica que la aplicación respondió; no verifica integridad, autorización ni cifrado. Si la respuesta tarda más de cinco segundos o es incorrecta, muestra un error y permite volver a intentarlo. Esto evita presentar un estado verde inventado.
+
+La interfaz usa lenguaje dirigido a sus usuarios; las explicaciones sobre cómo desarrollar o estudiar el sistema quedan en esta guía. «El portal está disponible» solo significa que la consulta real de salud fue correcta. Mostrar «Acceso administrativo pendiente de habilitación» no implementa autorización: actualmente no existe ninguna entrada administrativa. Cuando se construya ese acceso será necesario protegerlo en el servidor.
+
+## De abrir la página a verla en pantalla
+
+Una petición HTTP es un mensaje que tu navegador envía para pedir algo. Al abrir la dirección local, pide `GET /`; GET significa consultar. El servidor responde con un código, unas cabeceras y un cuerpo. El cuerpo de la portada es HTML; el navegador lo interpreta y después pide CSS, JavaScript y el icono.
+
+En nuestro proyecto sucede lo siguiente:
+
+1. El navegador conecta con `127.0.0.1:8080`, el propio computador.
+2. Docker entrega ese tráfico al puerto 8080 del contenedor Nginx.
+3. Nginx actúa como **proxy inverso**: recibe la petición en nombre de la aplicación y se la envía a `app:8000`, dentro de Docker. El nombre `app` se resuelve al contenedor Python.
+4. Uvicorn recibe HTTP y llama a **FastAPI**, el framework Python donde declaramos qué función atiende cada ruta.
+5. La función `inicio` de `app/main.py` usa **Jinja2** para convertir las plantillas en HTML. `base.html` contiene la estructura común y `components.html` reutiliza iconos y tarjetas.
+6. La respuesta regresa por Nginx al navegador. CSS decide el aspecto; JavaScript solo consulta salud al pulsar el botón. No se descargan fuentes ni recursos externos.
+
+En `app/main.py`, `@app.get("/")` asocia una URL con una función. `@app.get("/health")` atiende otra ruta y devuelve datos JSON. El modelo `EstadoSalud` define sus campos. `StaticFiles` expone únicamente `app/static`, no los PDF, el código Python ni la carpeta completa del proyecto.
+
+**FastAPI** facilita escribir y validar respuestas web en Python; no es el navegador ni Docker. **Uvicorn** es el servidor que lo ejecuta mediante ASGI, una interfaz entre servidor y aplicación. **Nginx** es la puerta común: hoy hace proxy y añade cabeceras; después terminará TLS y aplicará cuotas. **Docker Compose** describe cómo se crean y conectan los dos servicios. No necesitan que instales Nginx o bibliotecas Python globalmente en Windows.
+
+Hay dos redes: `entrada`, a la que pertenece Nginx para publicar la dirección local, y `portal`, interna, compartida con Python. FastAPI solo pertenece a la interna. Escribir `EXPOSE 8000` en Dockerfile documenta un puerto: no equivale a publicarlo con `ports`. Por eso no abrimos el backend directamente desde Windows.
+
+## Archivos que conviene leer primero
+
+| Archivo | Qué aprender al leerlo |
+|---|---|
+| `app/main.py` | Ruta, función, respuesta HTML frente a JSON y recursos públicos |
+| `app/templates/base.html`, `index.html`, `components.html` | HTML accesible y reutilización sin copiar tarjetas/iconos |
+| `app/static/styles.css` | Variables de color, composición, media queries y movimiento reducido |
+| `app/static/main.js` | Petición fetch, espera, respuesta, error y recuperación del botón |
+| `infra/nginx/default.conf` | `location`, `proxy_pass` y cabeceras; Nginx habla con el servicio `app` |
+| `infra/nginx/nginx.conf` | Configuración general del proceso y escritura limitada a `/tmp` |
+| `Dockerfile` | Receta que copia código e instala versiones fijadas; destinos runtime y test |
+| `compose.yaml` | Qué servicio ejecuta cada imagen, redes, salud y único puerto publicado |
+| `requirements.in` / `.txt` y sus variantes dev | Dependencias directas frente a conjunto completo de versiones |
+| `tests/test_portal.py` | Qué esperamos del servidor y cómo se detecta una regresión |
+| `scripts/verificar_etapa1.py` | Comprobar contenedores y HTTP reales desde Windows |
+| `scripts/verificar_interfaz.cjs` | Revisión opcional de navegador; herramientas fuera de la aplicación |
+
+No hay todavía `auth.py`, `crypto.py`, una base SQLite ni `.env`: se añadirán cuando la etapa correspondiente lo necesite. La base actual no procesa credenciales y no necesita secretos.
+
+## Cómo demostrar esta primera etapa
+
+Abre la portada, recorre sus secciones y señala los estados pendientes. Pulsa el botón y explica que se observa una respuesta real. Ejecuta `docker compose ps`: muestra dos servicios. Ejecuta `python scripts\verificar_etapa1.py` si tienes Python en Windows: comprueba el proxy, redes y ausencia de puertos de FastAPI. Las instrucciones para pytest y reinicio están en [GUIA_WINDOWS.md](GUIA_WINDOWS.md).
+
+Las pruebas de `TestClient` consultan la aplicación sin levantar una conexión real: sirven para detectar errores de rutas y plantillas. El verificador de infraestructura y el navegador sí usan el Nginx que está corriendo. Necesitamos ambas perspectivas; un test de Python aprobado por sí solo no prueba que el puerto Docker esté bien publicado.
+
+Para sustentar, practica explicar este recorrido sin memorizar comandos: «Mi navegador entra por Nginx; Nginx consulta a FastAPI en una red interna; Python devuelve el HTML y el navegador carga los recursos». Relación con clases: HTTP/puertos de clase 2, configuración Nginx de clase 5, mínimo privilegio relacionado con clase 6 y construcción/pruebas relacionadas con clase 7. Eso no completa las prácticas de Wireshark, NAC, análisis de vulnerabilidades o cifrado.
+
+## Glosario que iremos ampliando
+
+| Término | Significado en nuestro proyecto |
+|---|---|
+| Backend | Python que recibe consultas y produce respuestas |
+| Frontend | HTML/CSS/JS que interpreta el navegador |
+| Framework | Biblioteca que organiza tareas comunes; aquí FastAPI |
+| Endpoint o ruta | Dirección y método que atiende una función, por ejemplo GET `/health` |
+| HTTP / GET | Protocolo de petición/respuesta y método para consultar un recurso |
+| JSON | Formato de datos de la respuesta de salud |
+| Proxy inverso | Servicio que recibe por la aplicación y le reenvía las peticiones |
+| ASGI / Uvicorn | Interfaz de servidor Python y programa que la ejecuta |
+| Plantilla / Jinja2 | Documento HTML con partes reutilizables que Python renderiza |
+| Imagen / contenedor | Receta empaquetada y proceso aislado que se ejecuta desde ella |
+| Compose | Archivo/herramienta que coordina los servicios del proyecto |
+| Puerto / loopback | Punto de entrada de un servicio / dirección del propio computador |
+| DNS de Docker | Resolución del nombre `app` a su dirección interna |
+| Healthcheck | Consulta periódica para saber si un servicio responde |
+| Dependencia / digest | Biblioteca necesaria / identificador de contenido de una imagen |
+| pytest / aserción | Herramienta de pruebas / comprobación de un resultado esperado |
+| CSP | Cabecera que limita de dónde puede cargar recursos el navegador |
+| Media query | Regla CSS que adapta el diseño a pantalla o preferencias |
+| CDN | Servidor externo de recursos; esta portada no depende de uno |
+
+## El objetivo de las próximas etapas
 
 ## La idea con un ejemplo
 
@@ -108,4 +188,4 @@ Ejemplo **sin ejecutar**: clase 4, estudiante asignado, original intacto, reloj 
 
 Lee el [resumen](RESUMEN_PROYECTO.md) para conocer requisitos y P1–P10; la [arquitectura](ARQUITECTURA.md) para ver responsabilidades y archivos propuestos; la [matriz](MATRIZ_CLASES.md) para preparar la explicación de cada clase; y el [plan](PLAN_IMPLEMENTACION.md) para construir en seis etapas.
 
-La futura `docs/GUIA_WINDOWS.md` contendrá comandos realmente comprobados para arrancar, verificar, restaurar y parar. Aún no existe y esta guía no promete que Docker o las herramientas estén listos. La primera etapa empezará comprobando entorno y recursos cuando autorices programar. Después se hará un portal mínimo local; todavía no se avanza a esa etapa.
+La [GUIA_WINDOWS.md](GUIA_WINDOWS.md) ya contiene el entorno observado y los comandos de esta etapa. La [ficha de resultados](evidencias/etapa-01.md) registra ejecuciones reales e incidencias corregidas. Restaurar un examen, identificar usuarios y cumplir P1–P10 siguen pendientes; no se avanza a etapa 2 sin autorización.

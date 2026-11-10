@@ -1,0 +1,26 @@
+{% macro icon(nombre, clase='') -%}
+<svg class="icon {{ clase }}" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+{% if nombre == 'sobre' %}<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 6 9 7 9-7"/>
+{% elif nombre == 'inicio' %}<path d="m3 10 9-7 9 7v10H3Z"/><path d="M9 20v-7h6v7"/>
+{% elif nombre == 'areas' %}<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+{% elif nombre == 'ruta' %}<circle cx="6" cy="5" r="2"/><circle cx="18" cy="19" r="2"/><path d="M6 7v7a5 5 0 0 0 5 5h5M9 5h9v8"/>
+{% elif nombre == 'docente' %}<path d="m2 8 10-5 10 5-10 5Z"/><path d="M6 10v6c4 3 8 3 12 0v-6M22 8v7"/>
+{% elif nombre == 'estudiante' %}<path d="M12 6c-3-3-7-3-10-2v15c3-1 7-1 10 2 3-3 7-3 10-2V4c-3-1-7-1-10 2Zm0 0v15"/>
+{% elif nombre == 'laboratorio' %}<path d="M9 3h6M10 3v6L4 19a1 1 0 0 0 1 2h14a1 1 0 0 0 1-2L14 9V3M7 15h10"/>
+{% elif nombre == 'flecha' %}<path d="M5 12h14m-5-5 5 5-5 5"/>
+{% elif nombre == 'pulso' %}<path d="M2 12h5l3-8 4 16 3-8h5"/>
+{% elif nombre == 'info' %}<circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v.1"/>
+{% endif %}
+</svg>
+{%- endmacro %}
+
+{% macro area(numero, nombre, simbolo, descripcion, tareas, nota='Funcionalidad pendiente de habilitación') -%}
+<article class="area-card">
+  <div class="card-top"><span class="area-icon">{{ icon(simbolo) }}</span><span class="pending">Pendiente</span></div>
+  <p class="card-number">ÁREA {{ numero }}</p>
+  <h3>{{ nombre }}</h3>
+  <p>{{ descripcion }}</p>
+  <ul>{% for tarea in tareas %}<li>{{ tarea }}</li>{% endfor %}</ul>
+  <div class="card-bottom">{{ nota }}</div>
+</article>
+{%- endmacro %}
