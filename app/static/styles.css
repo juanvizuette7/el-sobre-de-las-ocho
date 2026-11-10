@@ -1434,3 +1434,76 @@ figcaption small,
   color: #7d2e21;
   background: #faede7;
 }
+
+/* Horarios de la última respuesta del servidor: presentación, sin temporizador local. */
+.evaluation-timing {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin: 24px 0;
+}
+.evaluation-timing[hidden] {
+  display: none;
+}
+.laboratory-clock,
+.scheduled-opening {
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 20px;
+}
+.laboratory-clock {
+  background: var(--soft);
+}
+.time-label {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0 0 12px;
+}
+.time-value {
+  display: block;
+  font: 34px/1.25 var(--serif);
+  color: var(--green);
+}
+.time-date {
+  margin: 12px 0 0;
+  font-size: 14px;
+  color: var(--ink);
+}
+.time-caption {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0;
+}
+.availability-result {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.availability-result .icon {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+.availability-result .state-ok {
+  display: none;
+}
+.availability-result[data-state="ok"] .state-ok {
+  display: block;
+}
+.availability-result[data-state="ok"] .state-lock {
+  display: none;
+}
+.availability-result[data-state="restricted"] {
+  background: #f7efe4;
+  border-color: #d5bf9e;
+  color: #655032;
+}
+@media (max-width: 700px) {
+  .evaluation-timing {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .time-value {
+    font-size: 30px;
+  }
+}

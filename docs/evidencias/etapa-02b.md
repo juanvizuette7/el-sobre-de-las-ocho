@@ -1,5 +1,18 @@
 # Evidencia de etapa 2B — disponibilidad por asignación y horario
 
+## Ajuste de presentación horaria — 10 de noviembre de 2026
+
+Se añadió un modelo de presentación del servidor: reloj de 12 horas con segundos y a. m./p. m., fecha completa en español y apertura programada separada. La interfaz identifica la referencia como «Hora del laboratorio (simulada)» e indica que los valores corresponden a la última consulta. JavaScript muestra los textos e instantes recibidos; no adelanta el reloj ni calcula permisos. Los estados incorporan texto e iconos además del color. No se modificaron la política, los comandos existentes, TOTP, sesiones, RBAC, ABAC ni el esquema SQLite.
+
+Verificación del ajuste:
+
+- Suite completa en contenedor sin red y con raíz de solo lectura: **72 passed in 37.94s**; 66 casos existentes y 6 de presentación. Se actualizaron únicamente las expectativas textuales del caso de panel existente.
+- Navegador contra FastAPI a través de Nginx, en el proyecto temporal aislado: 07:59:59 devuelve 403 y muestra «Examen bloqueado. Falta 1 segundo para la apertura»; 08:00:00 devuelve 200 para el estudiante asignado y muestra «Horario cumplido. Acceso autorizado». Retirar la asignación después de la apertura mantiene 403 y el mensaje de restricción.
+- Capturas de ambos límites revisadas en 1440 y 390 px; sin desbordamiento ni infracciones automáticas axe WCAG A/AA en las vistas analizadas. Los textos y fechas del DOM coinciden con la respuesta del servidor. La revisión automática no constituye una certificación de accesibilidad.
+- Las 27 comprobaciones de `scripts/verificar_etapa1.py` aprobaron. Docker Compose conserva dos servicios saludables y `/health` responde 200 por Nginx. Los recorridos de autenticación, TOTP y roles del verificador de identidad también aprobaron.
+
+Artefactos locales: `.qa/identidad-resultados.txt` y `.qa/capturas/hora-{403,200}-{1440,390}.png`. El ensayo no cambió el reloj ni la asignación del volumen principal. No se añadieron dependencias, funcionalidades de etapa 3, commits ni push.
+
 Fecha local de referencia: 9 de noviembre de 2026, America/Bogota. Modalidad: implementación real sobre metadatos, no entrega de documentos. Fuentes: F3 pp. 1–3, 5–6; clase 4, `Semana 4- 22-09-2026 Comunicación y seguridad Informatica.pdf`, pp. 4–7 y 15. Se utilizó la documentación existente sin reprocesar PDF. No se hicieron commits ni push; la ejecución corresponde al árbol de trabajo entregado.
 
 ## Condiciones y procedimiento

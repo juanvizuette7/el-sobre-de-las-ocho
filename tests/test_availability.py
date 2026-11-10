@@ -233,11 +233,11 @@ def test_panel_asignado_muestra_estado_real_y_no_documento(ensayo):
     cliente, config, _, _ = ensayo
     login(ensayo)
     cerrado = cliente.get("/estudiante")
-    assert "Evaluación de laboratorio" in cerrado.text and "acceso está restringido" in cerrado.text
+    assert "Evaluación de laboratorio" in cerrado.text and "Examen bloqueado. Falta 1 segundo para la apertura" in cerrado.text
     assert "America/Bogota" in cerrado.text
     fijar(config, "08:00:00")
     abierto = cliente.get("/estudiante")
-    assert "Acceso autorizado por asignación y horario" in abierto.text
+    assert "Horario cumplido. Acceso autorizado" in abierto.text
     assert cliente.get("/descargar").status_code == 404
 
 

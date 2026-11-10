@@ -135,6 +135,7 @@ networks:
     });
     const rutaDisponibilidad =
       await botonDisponibilidad.getAttribute("data-availability");
+    const capturasHorarias = new Set();
     const comprobarDisponibilidad = async (codigo) => {
       const [respuesta] = await Promise.all([
         pagina.waitForResponse(
@@ -147,6 +148,68 @@ networks:
       assert.equal(decision.autorizado, codigo === 200);
       assert.equal(decision.descarga_habilitada, false);
       assert.equal(respuesta.headers()["content-disposition"], undefined);
+      const vista = decision.presentacion;
+      await pagina.waitForFunction(
+        (texto) =>
+          document.querySelector("[data-availability-message]")?.textContent ===
+          texto,
+        vista.mensaje,
+      );
+      if (decision.motivo === "evaluacion_no_asignada") {
+        assert.equal(vista.estado, "restricted");
+        assert.match(
+          vista.mensaje,
+          /Cumplir el horario no autoriza el acceso sin asignación/,
+        );
+        assert.equal(
+          await pagina.locator("[data-time-display]").isHidden(),
+          true,
+        );
+      }
+      const limite = vista.reloj?.hora;
+      if (
+        ["7:59:59 a. m.", "8:00:00 a. m."].includes(limite) &&
+        !capturasHorarias.has(limite)
+      ) {
+        capturasHorarias.add(limite);
+        assert.equal(vista.apertura.hora, "8:00 a. m.");
+        assert.equal(vista.reloj.fecha, "lunes, 9 de noviembre de 2026");
+        assert.equal(
+          vista.mensaje,
+          codigo === 200
+            ? "Horario cumplido. Acceso autorizado"
+            : "Examen bloqueado. Falta 1 segundo para la apertura",
+        );
+        assert.equal(
+          await pagina.locator("[data-lab-time]").textContent(),
+          limite,
+        );
+        assert.equal(
+          await pagina.locator("[data-open-time]").textContent(),
+          "8:00 a. m.",
+        );
+        for (const ancho of [1440, 390]) {
+          await pagina.setViewportSize({ width: ancho, height: 900 });
+          assert.equal(
+            await pagina.evaluate(
+              () => document.documentElement.scrollWidth > innerWidth,
+            ),
+            false,
+          );
+          const accesibilidad = await new AxeBuilder({ page: pagina })
+            .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+            .analyze();
+          assert.deepEqual(
+            accesibilidad.violations.map((v) => v.id),
+            [],
+          );
+          await pagina.evaluate(() => document.activeElement?.blur());
+          await pagina.screenshot({
+            path: `.qa/capturas/hora-${codigo}-${ancho}.png`,
+            fullPage: true,
+          });
+        }
+      }
     };
     await comprobarDisponibilidad(403);
     administrarEnsayo("reloj", "fijar", "2026-11-09T08:00:00");
@@ -166,6 +229,9 @@ networks:
     await comprobarDisponibilidad(403);
     resumen.push(
       "Disponibilidad real: 07:59:59 → 403; 08:00:00 y 08:01:00 → 200 sin archivo; sin asignación → 403; restauración → 403",
+    );
+    resumen.push(
+      "Presentación: fecha española, reloj 12 h con segundos, apertura separada y estados exactos a 07:59:59/08:00; escritorio/móvil y axe A/AA correctos",
     );
     assert.equal(
       (await contexto.cookies()).find((c) => c.name === "sobre_sesion")

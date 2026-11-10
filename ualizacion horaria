@@ -1,0 +1,10 @@
+app/evaluations.py
+app/presentation.py
+app/static/availability.js
+app/static/styles.css
+app/templates/components.html
+app/templates/panel.html
+docs/evidencias/etapa-02b.md
+scripts/verificar_identidad.cjs
+tests/test_availability.py
+tests/test_presentation.py
