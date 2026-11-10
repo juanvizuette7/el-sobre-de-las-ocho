@@ -1,12 +1,22 @@
 # Arquitectura prevista
 
-**Estado: etapas 1 y 2A implementadas; 2B y protección/entrega de exámenes pendientes.** F3 = `docs/planificacion/Fase_3_Diseno_El_sobre_de_las_ocho.pdf`, páginas físicas. Requisitos y respuestas HTTP: [RESUMEN_PROYECTO.md](RESUMEN_PROYECTO.md). Fuentes docentes: [MATRIZ_CLASES.md](MATRIZ_CLASES.md). Resultados: [etapa 1](evidencias/etapa-01.md) y [etapa 2A](evidencias/etapa-02a.md).
+**Estado: etapas 1, 2A y 2B implementadas; protección/entrega de exámenes pendiente.** F3 = `docs/planificacion/Fase_3_Diseno_El_sobre_de_las_ocho.pdf`, páginas físicas. Requisitos y respuestas HTTP: [RESUMEN_PROYECTO.md](RESUMEN_PROYECTO.md). Fuentes docentes: [MATRIZ_CLASES.md](MATRIZ_CLASES.md). Resultados: [etapa 1](evidencias/etapa-01.md) y [etapa 2A](evidencias/etapa-02a.md).
+
+## Disponibilidad implementada en 2B
+
+La especificación vigente está en [AUTORIZACION_HORARIO.md](AUTORIZACION_HORARIO.md). Evaluaciones, asignaciones y reloj se incorporan a la misma SQLite mediante migración aditiva; no se cambian cuentas, sesiones, secretos o servicios de 2A.
+
+Los módulos app/clock.py y app/demo.py proporcionan reloj fijo persistente o normal y controles exclusivamente por CLI. El arranque no sustituye un reloj perdido por tiempo normal si hay evaluaciones; deniega hasta una configuración local explícita.
+
+app/policy.py separa RBAC de paneles y decidir_disponibilidad, reutilizada por consultar_disponibilidad: sesión vigente, rol estudiante, asignación y apertura inclusiva. app/evaluations.py expone GET /evaluaciones/{id}/disponibilidad, con 401/403/200 y 503 ante configuración inválida. No entrega archivos. Los paneles y su JavaScript presentan la decisión recibida; no comparan fechas del navegador.
+
+La auditoría conserva instante real y referencia didáctica ISO en columnas separadas, junto a evaluación, cuenta, acción, resultado y motivo. TOTP, límites y caducidad continúan usando tiempo real. Resultados en [evidencia 2B](evidencias/etapa-02b.md).
 
 ## Identidad implementada en 2A
 
-La especificación operativa y de seguridad vigente está en [IDENTIDAD_ACCESO.md](IDENTIDAD_ACCESO.md): SQLite en volumen privado `identidad`, Argon2id con sal, sesiones de servidor y rotación, desafío TOTP, RBAC, CSRF y auditoría. `app/config.py`, `db.py`, `security.py`, `sessions.py`, `auth.py`, `policy.py`, `audit.py` y `manage.py` ya existen. No se incorpora otro servicio Compose ni se publica Python. Solo `/data` añade almacenamiento escribible persistente a la aplicación; Nginx no lo monta. La preparación ABAC consiste en una política modular de servidor: no existen todavía sus atributos de asignación o apertura.
+La especificación operativa y de seguridad vigente está en [IDENTIDAD_ACCESO.md](IDENTIDAD_ACCESO.md): SQLite en volumen privado `identidad`, Argon2id con sal, sesiones de servidor y rotación, desafío TOTP, RBAC, CSRF y auditoría. `app/config.py`, `db.py`, `security.py`, `sessions.py`, `auth.py`, `policy.py`, `audit.py` y `manage.py` ya existen. No se incorpora otro servicio Compose ni se publica Python. Solo `/data` añade almacenamiento escribible persistente a la aplicación; Nginx no lo monta. 2B integra ABAC de asignación y apertura de metadatos sobre esta base.
 
-Las reglas de cifrado, descarga y tiempo de las secciones siguientes siguen siendo diseño futuro. La contraseña usa Argon2id en lugar de la propuesta inicial scrypt; ambos cubren derivación y sal, y la implementación concreta está probada. Tiempo de identidad: reloj real, independiente del futuro reloj didáctico. El secreto TOTP se conserva como archivo privado 0600, no cifrado en reposo; la protección no cubre al administrador del portátil/Docker.
+Las reglas de cifrado y descarga siguen siendo diseño futuro; la disponibilidad horaria ya está implementada. La contraseña usa Argon2id en lugar de la propuesta inicial scrypt; ambos cubren derivación y sal, y la implementación concreta está probada. Tiempo de identidad: reloj real, independiente del reloj didáctico de evaluaciones. El secreto TOTP se conserva como archivo privado 0600, no cifrado en reposo; la protección no cubre al administrador del portátil/Docker.
 
 ## Implementación actual de etapa 1
 
@@ -14,7 +24,7 @@ La implementación utiliza FastAPI + Uvicorn (ASGI), Jinja2 y `http://127.0.0.1:
 
 La interfaz conserva el producto y su identidad visual, añade acceso y paneles privados, y mantiene el laboratorio administrativo sin rutas ni controles. El seguimiento de construcción permanece fuera de las pantallas.
 
-Rutas públicas conservadas: `GET /`, `GET /health`, `/static`. Nuevas rutas de identidad: GET/POST `/acceso`, GET/POST `/acceso/totp`, POST `/salir`; paneles GET `/docente` y `/estudiante`, protegidos en servidor. Documentación interactiva API desactivada. No hay todavía rutas de publicación, asignación, horario, descarga o administración de laboratorio. El campo `etapa: 1` de salud se conserva como contrato heredado de infraestructura; no expresa cobertura funcional.
+Rutas públicas conservadas: `GET /`, `GET /health`, `/static`. Nuevas rutas de identidad: GET/POST `/acceso`, GET/POST `/acceso/totp`, POST `/salir`; paneles GET `/docente` y `/estudiante`, protegidos en servidor. Documentación interactiva API desactivada. No hay rutas web para publicar, modificar asignaciones/reloj, descargar o administrar el laboratorio. La consulta de disponibilidad sí está implementada. El campo `etapa: 1` de salud se conserva como contrato heredado de infraestructura; no expresa cobertura funcional.
 
 ```text
 Windows/navegador → 127.0.0.1:8080 → Nginx:8080 → app:8000 → FastAPI/Uvicorn
@@ -135,7 +145,7 @@ P9 exige como máximo 100 peticiones, concurrencia 5, cuota de 5 r/s/IP y margen
 
 ## Mapa de archivos futuros
 
-El mapa inicial se complementa con IDENTIDAD_ACCESO y README. Autenticación, configuración, política RBAC, SQLite y auditoría de identidad ya están implementados. Reloj didáctico, criptografía del examen, almacén de sobres y laboratorios siguen pendientes.
+El mapa inicial se complementa con IDENTIDAD_ACCESO y README. Autenticación, configuración, política RBAC, SQLite y auditoría de identidad ya están implementados. Reloj didáctico y ABAC de disponibilidad ya están implementados; criptografía del examen, almacén de sobres y laboratorios siguen pendientes.
 
 | Ruta propuesta | Responsabilidad |
 |---|---|
@@ -157,4 +167,4 @@ La UI propuesta usa el sobre sellado como identidad visual, jerarquía clara, ti
 
 ## Decisiones pendientes acotadas
 
-Etapas 1 y 2A resuelven base local, identidad, TOTP, caducidad y permisos por rol. 2B mantiene pendientes asignaciones y horario. Etapa 3: formato del sobre, atomicidad y errores no fijados por F3. Etapa 4: TLS y soporte de Packet Tracer. Etapa 5: CVE corregible y herramientas de análisis. No se inicia 2B en esta entrega.
+Etapas 1 y 2A resuelven base local, identidad, TOTP, caducidad y permisos por rol. 2B resuelve asignaciones y horario de metadatos. Etapa 3: formato del sobre, atomicidad y errores no fijados por F3. Etapa 4: TLS y soporte de Packet Tracer. Etapa 5: CVE corregible y herramientas de análisis. No se inicia etapa 3 en esta entrega.

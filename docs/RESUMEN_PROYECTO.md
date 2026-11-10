@@ -1,6 +1,6 @@
 # El sobre de las ocho: resumen del proyecto
 
-Análisis inicial: 9 de noviembre de 2026. **Estado actualizado: etapas 1 y 2A implementadas; 2B, examen protegido y laboratorios pendientes.** La plataforma incluye SQLite, Argon2id, sesiones privadas, TOTP docente, RBAC y auditoría de identidad. Los requisitos de publicación, asignación, horario y cifrado permanecen sin implementar. Referencias: [README](../README.md), [IDENTIDAD_ACCESO](IDENTIDAD_ACCESO.md) y [evidencia 2A](evidencias/etapa-02a.md).
+Análisis inicial: 9 de noviembre de 2026. **Estado actualizado: etapas 1, 2A y 2B implementadas; examen protegido y laboratorios pendientes.** La plataforma incluye SQLite, Argon2id, sesiones privadas, TOTP docente, RBAC y auditoría de identidad. Asignación y apertura ya se verifican sobre metadatos; publicación, cifrado, integridad y descarga reales permanecen sin implementar. Detalles en [AUTORIZACION_HORARIO.md](AUTORIZACION_HORARIO.md). Referencias: [README](../README.md), [IDENTIDAD_ACCESO](IDENTIDAD_ACCESO.md) y [evidencia 2A](evidencias/etapa-02a.md).
 
 ## Especificación y fuentes
 
@@ -71,10 +71,10 @@ Todos los resultados siguientes son **esperados, no observados**. Fuente: F3 pp.
 
 ## Estado, incertidumbres y lectura posterior
 
-P1 tiene verificación parcial de identidad: credenciales, TOTP y denegación de rutas privadas por rol; su publicación/descarga siguen ausentes. P2–P10 no están ejecutados. La comunicación Nginx–FastAPI y portada se conservan verificadas. Certificados, herramientas de laboratorios y CVE siguen pendientes. El flujo local DevSecOps y el límite de carga de F3 prevalecen sobre ejemplos docentes más amplios.
+P1 tiene verificación parcial de identidad: credenciales, TOTP y denegación de rutas privadas por rol; su publicación/descarga siguen ausentes. P2 acredita parcialmente el límite horario mediante disponibilidad JSON, sin entregar el original; P3–P10 siguen pendientes. La comunicación Nginx–FastAPI y portada se conservan verificadas. Certificados, herramientas de laboratorios y CVE siguen pendientes. El flujo local DevSecOps y el límite de carga de F3 prevalecen sobre ejemplos docentes más amplios.
 
 La Fase 3 estima 30–40 h, aunque sus seis intervalos suman 30–40 h para construcción y ensayo; el informe extenso y diapositivas corresponden a la **fase académica 5**, diferente de la etapa de construcción 5 (F3 p. 5).
 
 Los PDF locales ya están rastreados por Git. `.gitignore` no los retira del índice ni del historial; esta tarea no cambia el índice, borra originales ni publica archivos. Antes de compartir el repositorio será necesario resolver la autorización de distribución y la permanencia de esos materiales.
 
-Referencias: [ARQUITECTURA.md](ARQUITECTURA.md), [PLAN_IMPLEMENTACION.md](PLAN_IMPLEMENTACION.md) y guía privada de aprendizaje. FastAPI y HTTP local en 8080 se conservan; las cookies se preparan para Secure en HTTPS futuro. La interfaz ofrece acceso y paneles privados, con evaluación y laboratorio todavía pendientes. La etapa 2B requiere autorización.
+Referencias: [ARQUITECTURA.md](ARQUITECTURA.md), [PLAN_IMPLEMENTACION.md](PLAN_IMPLEMENTACION.md) y guía privada de aprendizaje. FastAPI y HTTP local en 8080 se conservan; las cookies se preparan para Secure en HTTPS futuro. La interfaz ofrece acceso y paneles privados, con evaluación y laboratorio todavía pendientes. La etapa 2B cuenta con [evidencia](evidencias/etapa-02b.md). La etapa 3 requiere autorización.

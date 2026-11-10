@@ -6,9 +6,29 @@
   <form method="post" action="/salir" data-auth-form><input type="hidden" name="csrf" value="{{ sesion.csrf }}"><button class="health-button" type="submit">Cerrar sesión</button><p class="form-status" role="status" aria-live="polite"></p></form>
 </section>
 <div class="private-summary"><span class="area-icon">{{ icon('docente' if docente else 'estudiante') }}</span><div><h2>Acceso verificado</h2><p>{{ 'Contraseña y segundo factor validados.' if docente else 'Identidad y rol de estudiante validados.' }} La sesión caduca a los 30 minutos.</p></div></div>
-<section class="identity-card panel-empty" aria-labelledby="pending-title">
-  <p class="eyebrow">EVALUACIONES</p><h2 id="pending-title">{{ 'Publicación pendiente de habilitación' if docente else 'Consulta de evaluaciones pendiente de habilitación' }}</h2>
-  <p>{{ 'La publicación, asignación y apertura de evaluaciones aún no están disponibles.' if docente else 'Las asignaciones y la descarga de documentos aún no están disponibles.' }}</p>
-  <span class="pending">Pendiente</span>
+<section aria-labelledby="evaluations-title" class="evaluations-section">
+  <p class="eyebrow">{{ 'PROGRAMACIÓN' if docente else 'EVALUACIONES ASIGNADAS' }}</p>
+  <h2 id="evaluations-title">{{ 'Evaluaciones registradas' if docente else 'Tus evaluaciones' }}</h2>
+  {% for item in evaluaciones %}
+    {% set evaluacion = item if docente else item.evaluacion %}
+    <article class="identity-card evaluation-card" aria-labelledby="evaluation-title-{{ loop.index }}">
+      <h3 id="evaluation-title-{{ loop.index }}">{{ evaluacion.titulo if evaluacion else 'Disponibilidad no verificable' }}</h3>
+      {% if evaluacion %}
+      <dl class="evaluation-details">
+        <div><dt>Identificador</dt><dd>{{ evaluacion.id }}</dd></div>
+        <div><dt>Apertura · America/Bogota</dt><dd><time datetime="{{ evaluacion.apertura }}">{{ evaluacion.apertura.replace('T', ' · ') }}</time></dd></div>
+        {% if docente %}<div><dt>Estudiante asignado</dt><dd>{{ item.estudiante or 'Sin asignación' }}</dd></div>{% endif %}
+      </dl>
+      {% endif %}
+      {% if not docente %}
+      <p class="availability-result" id="decision-{{ loop.index }}" role="status" aria-live="polite" data-state="{{ 'ok' if item.autorizado else 'restricted' }}">{{ item.mensaje }}</p>
+      {% if evaluacion %}<button type="button" class="health-button" data-availability="/evaluaciones/{{ evaluacion.id }}/disponibilidad" aria-controls="decision-{{ loop.index }}">Actualizar disponibilidad {{ icon('pulso') }}</button>{% endif %}
+      {% else %}<p>La disponibilidad se verifica para cada estudiante al consultar la evaluación.</p>{% endif %}
+      <p class="field-help">Descarga de documentos pendiente de habilitación.</p>
+    </article>
+  {% else %}
+    <div class="identity-card panel-empty"><h3>{{ 'No hay evaluaciones registradas.' if docente else 'No tienes evaluaciones asignadas.' }}</h3><p>La descarga de documentos está pendiente de habilitación.</p></div>
+  {% endfor %}
 </section>
+{% if docente %}<p class="field-help">La carga de documentos y la edición de evaluaciones no están habilitadas.</p>{% endif %}
 {% endblock %}

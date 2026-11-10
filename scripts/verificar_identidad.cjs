@@ -83,6 +83,9 @@ networks:
       ],
       JSON.stringify({ docente, estudiante }),
     );
+    const administrarEnsayo = (...args) =>
+      docker(["exec", "-T", "app", "python", "-m", "app.demo", ...args]);
+    administrarEnsayo("preparar", "--fecha", "2026-11-09");
     navegador = await chromium.launch({ channel: "chrome", headless: true });
     const contexto = await navegador.newContext();
     const pagina = await contexto.newPage();
@@ -126,6 +129,44 @@ networks:
     etapa = "acceso_estudiante";
     await acceso("estudiante", estudiante);
     await pagina.waitForURL("**/estudiante");
+    etapa = "disponibilidad";
+    const botonDisponibilidad = pagina.getByRole("button", {
+      name: "Actualizar disponibilidad",
+    });
+    const rutaDisponibilidad =
+      await botonDisponibilidad.getAttribute("data-availability");
+    const comprobarDisponibilidad = async (codigo) => {
+      const [respuesta] = await Promise.all([
+        pagina.waitForResponse(
+          (r) => new URL(r.url()).pathname === rutaDisponibilidad,
+        ),
+        botonDisponibilidad.click(),
+      ]);
+      assert.equal(respuesta.status(), codigo);
+      const decision = await respuesta.json();
+      assert.equal(decision.autorizado, codigo === 200);
+      assert.equal(decision.descarga_habilitada, false);
+      assert.equal(respuesta.headers()["content-disposition"], undefined);
+    };
+    await comprobarDisponibilidad(403);
+    administrarEnsayo("reloj", "fijar", "2026-11-09T08:00:00");
+    await comprobarDisponibilidad(200);
+    administrarEnsayo("reloj", "fijar", "2026-11-09T08:01:00");
+    await comprobarDisponibilidad(200);
+    administrarEnsayo("asignacion", "retirar");
+    await comprobarDisponibilidad(403);
+    administrarEnsayo("asignacion", "asignar");
+    await comprobarDisponibilidad(200);
+    administrarEnsayo("preparar", "--fecha", "2026-11-09");
+    await comprobarDisponibilidad(403);
+    administrarEnsayo("reloj", "normal");
+    const estadoNormal = JSON.parse(administrarEnsayo("reloj", "estado"));
+    assert.equal(estadoNormal.modo, "normal");
+    administrarEnsayo("preparar", "--fecha", "2026-11-09");
+    await comprobarDisponibilidad(403);
+    resumen.push(
+      "Disponibilidad real: 07:59:59 → 403; 08:00:00 y 08:01:00 → 200 sin archivo; sin asignación → 403; restauración → 403",
+    );
     assert.equal(
       (await contexto.cookies()).find((c) => c.name === "sobre_sesion")
         .httpOnly,
@@ -178,6 +219,8 @@ networks:
       "-c",
       "import pyotp; from app.security import leer_secreto; from app.config import configuracion_entorno; print(pyotp.TOTP(leer_secreto(configuracion_entorno())).now())",
     ]).trim();
+    // Adelantar solo el reloj del recurso no debe invalidar el desafío ni el OTP.
+    administrarEnsayo("reloj", "fijar", "2035-01-01T08:01:00");
     etapa = "validar_totp";
     await pagina.getByLabel("Código del autenticador").fill(codigo);
     await pagina.getByRole("button", { name: "Verificar identidad" }).click();
@@ -201,6 +244,45 @@ networks:
     await pagina.waitForURL("**/acceso");
     resumen.push(
       "Docente: contraseña insuficiente, TOTP real aceptado, panel privado y salida",
+    );
+    resumen.push(
+      "TOTP real y desafío conservados al fijar el reloj de evaluaciones en 2035",
+    );
+    const auditoria = JSON.parse(
+      docker([
+        "exec",
+        "-T",
+        "app",
+        "python",
+        "-c",
+        "import json; from app.db import conexion; from app.config import configuracion_entorno; db=__import__('sqlite3').connect(configuracion_entorno().base_datos); db.row_factory=__import__('sqlite3').Row; print(json.dumps([dict(f) for f in db.execute(\"select * from eventos where accion='consultar_disponibilidad'\")]))",
+      ]),
+    );
+    assert.equal(
+      auditoria.some((e) => e.motivo === "fuera_de_horario"),
+      true,
+    );
+    assert.equal(
+      auditoria.some((e) => e.motivo === "apertura_cumplida"),
+      true,
+    );
+    assert.equal(
+      auditoria.some((e) => e.motivo === "evaluacion_no_asignada"),
+      true,
+    );
+    assert.equal(
+      auditoria.every(
+        (e) =>
+          e.evaluacion_id &&
+          e.instante_didactico &&
+          Number.isInteger(e.instante),
+      ),
+      true,
+    );
+    for (const sensible of [estudiante, docente, codigo])
+      assert.equal(JSON.stringify(auditoria).includes(sensible), false);
+    resumen.push(
+      "Auditoría real de autorización: recurso, usuario, decisión y dos tiempos, sin credenciales",
     );
     assert.deepEqual(errores, []);
     const marcaPrivada = randomBytes(16).toString("hex");

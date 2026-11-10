@@ -2,7 +2,7 @@
 
 ## Alcance
 
-Autenticación real de dos cuentas ficticias, TOTP obligatorio docente, sesiones opacas persistentes, RBAC en servidor y auditoría de identidad. El portal conserva FastAPI/Uvicorn, Nginx, dos servicios Compose y publicación exclusiva en `127.0.0.1:8080`. SQLite se ejecuta dentro de Python, sin servicio adicional. Publicación, asignaciones, descargas, cifrado, reloj didáctico y laboratorios siguen sin implementar. ABAC no está aplicado a recursos todavía.
+Autenticación real de dos cuentas ficticias, TOTP obligatorio docente, sesiones opacas persistentes, RBAC en servidor y auditoría de identidad. El portal conserva FastAPI/Uvicorn, Nginx, dos servicios Compose y publicación exclusiva en `127.0.0.1:8080`. SQLite se ejecuta dentro de Python, sin servicio adicional. Actualización 2B: asignaciones, reloj didáctico y ABAC de disponibilidad ya funcionan sobre metadatos; véase [AUTORIZACION_HORARIO.md](AUTORIZACION_HORARIO.md). Publicación, descargas, cifrado y laboratorios siguen sin implementar. Esta guía conserva el procedimiento de identidad de 2A.
 
 ## Ejecución e inicialización local
 
@@ -91,7 +91,7 @@ Exige confirmación `REVOCAR`. Borra las sesiones de servidor y registra el even
 | `app/security.py` | Argon2id y validación de pasos TOTP |
 | `app/sessions.py` | Tokens opacos, rotación, vigencia y límites persistentes |
 | `app/auth.py` | Formularios, CSRF, login, MFA, salida y paneles |
-| `app/policy.py` | Dependencias de RBAC y denegación por defecto; ABAC futuro será adicional |
+| `app/policy.py` | Dependencias de RBAC y denegación por defecto; ABAC de disponibilidad integrado en 2B |
 | `app/audit.py` | Registro de eventos con motivos internos |
 | `app/manage.py` | Alta interactiva y revocación local de sesiones |
 | `app/main.py` | Factoría, ciclo de vida, caché, errores y recursos públicos |
@@ -119,6 +119,6 @@ El segundo script requiere 8081 libre, inicia su propio proyecto de dos servicio
 
 ## Referencias
 
-Especificación académica: F3 pp. 1–3, 5–6; clase 4, `Semana 4- 22-09-2026 Comunicación y seguridad Informatica.pdf`, pp. 2, 4–7 y 15. Alcance IAM/AAA/MFA/RBAC en MATRIZ_CLASES; ABAC de asignaciones/horario sigue pendiente para 2B.
+Especificación académica: F3 pp. 1–3, 5–6; clase 4, `Semana 4- 22-09-2026 Comunicación y seguridad Informatica.pdf`, pp. 2, 4–7 y 15. Alcance IAM/AAA/MFA/RBAC en MATRIZ_CLASES; ABAC de asignaciones/horario de metadatos se acredita en la ficha 2B.
 
 Referencias técnicas primarias consultadas: [Argon2-cffi](https://argon2-cffi.readthedocs.io/en/stable/howto.html), [PyOTP](https://pyauth.github.io/pyotp/), [sesiones OWASP](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html), [CSRF OWASP](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html) y [Origin en MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Origin). No se releyeron los PDF originales ni se añadieron tecnologías ajenas al alcance.

@@ -1,8 +1,8 @@
 # Plan de implementación
 
-**Estado: etapas 1 y 2A implementadas; 2B y etapas posteriores pendientes.** Fuente principal: `docs/planificacion/Fase_3_Diseno_El_sobre_de_las_ocho.pdf` (F3), especialmente pp. 5–7. Se conservan nombres, orden y estimaciones de sus seis etapas. Evidencias: [etapa 1](evidencias/etapa-01.md) y [2A](evidencias/etapa-02a.md). P1 tiene cobertura parcial de identidad; P2–P10 pendientes.
+**Estado: etapas 1, 2A y 2B implementadas; etapas posteriores pendientes.** Fuente principal: `docs/planificacion/Fase_3_Diseno_El_sobre_de_las_ocho.pdf` (F3), especialmente pp. 5–7. Se conservan nombres, orden y estimaciones de sus seis etapas. Evidencias: [etapa 1](evidencias/etapa-01.md), [2A](evidencias/etapa-02a.md) y [2B](evidencias/etapa-02b.md). P1 conserva cobertura parcial de identidad; P2 verifica el límite sin archivo; P3–P10 pendientes.
 
-El alcance actual incorpora 2A: identidad y control de acceso, sin ejecutar 2B. Las rutas iniciales son propuestas en ARQUITECTURA; README e IDENTIDAD_ACCESO recogen las existentes. Las fuentes docentes y cobertura están en MATRIZ_CLASES. El seguimiento de seis etapas permanece documental.
+El alcance actual incorpora 2A (identidad) y 2B (atributos y horario de metadatos), sin ejecutar etapa 3. Las rutas iniciales son propuestas en ARQUITECTURA; README e IDENTIDAD_ACCESO recogen las existentes. Las fuentes docentes y cobertura están en MATRIZ_CLASES. El seguimiento de seis etapas permanece documental.
 
 ## Etapa 1 · Preparar — 3–4 h
 
@@ -29,7 +29,7 @@ Objetivo F3 p. 5: distinguir rechazos por sesión, rol y horario; pasar a acepta
 
 **2A entregada:** dos cuentas SQLite inicializadas localmente, Argon2id con sal, login/logout, sesión previa/MFA/completa con rotación, CSRF, límites persistentes, TOTP real y anti-repetición, RBAC, paneles privados y auditoría de identidad. No se implementa recuperación de cuentas ni un panel administrativo de usuarios. Evidencia y límites en IDENTIDAD_ACCESO y ficha 2A.
 
-**2B pendiente de autorización:** modelo de asignaciones, política ABAC de recurso y horario, reloj didáctico independiente de TOTP/sesiones, rechazos reproducibles por fecha/hora y sus pruebas. La etapa 2 completa no se declara cerrada. Cifrado, publicación/descarga real y laboratorios conservan sus etapas posteriores.
+**2B implementada y verificada:** metadatos/asignaciones SQLite, ABAC reutilizable, reloj fijo persistente o normal independiente de identidad, CLI local y auditoría con dos tiempos. Casos límite, asignación, TOTP, sesiones y reinicio probados. Identificar se demuestra sobre disponibilidad; P2 completo con original corresponde a etapa 3. Véanse AUTORIZACION_HORARIO y [ficha 2B](evidencias/etapa-02b.md).
 
 | Tarea pequeña | Entregable futuro | Aceptación / comprobación |
 |---|---|---|
@@ -108,4 +108,4 @@ Guion F3 p. 7: minuto 0–1 problema y cuentas; 1–4 rechazo horario, original 
 
 Pruebas unitarias/integración previstas para reglas críticas: identidad/MFA, política horaria y asignación, cifrado e integridad antes de salida, auditoría, NAC y restauración. Usar reloj de apertura inyectable y fixtures ficticios, no esperas reales hasta las 08:00. Pruebas HTTP a través de Nginx para TLS, cabeceras y cuota; revisión manual para diseño, Packet Tracer y captura de tráfico. No escribir pruebas que solo comprueben que un archivo existe o reflejen sin criterio la implementación.
 
-Una etapa solo se cierra con resultados observados y evidencia. La matriz distingue pendiente, implementado sin verificar, verificado y fallido. Etapas 1 y 2A cuentan con sus fichas; la siguiente acción requiere autorización de **2B**, sin marcar la etapa 2 completa como terminada.
+Una etapa solo se cierra con resultados observados y evidencia. La matriz distingue pendiente, implementado sin verificar, verificado y fallido. Etapas 1, 2A y 2B cuentan con sus fichas. La siguiente acción requiere autorización de **etapa 3**; no se acredita entrega ni integridad de archivos.

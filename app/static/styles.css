@@ -1392,3 +1392,45 @@ figcaption small,
     padding: 20px;
   }
 }
+
+/* Metadatos y disponibilidad: estados del servidor, sin controles de reloj web. */
+.evaluations-section > h2 {
+  margin-bottom: 24px;
+}
+.evaluation-card {
+  margin: 18px 0;
+}
+.evaluation-card h3 {
+  font: 28px/1.3 var(--serif);
+}
+.evaluation-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 20px;
+  margin: 24px 0;
+}
+.evaluation-details dt {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 5px;
+}
+.evaluation-details dd {
+  margin: 0;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.availability-result {
+  padding: 16px;
+  border-radius: 4px;
+  border: 1px solid #c4ccb9;
+  background: #f0f1e9;
+  font-size: 14px;
+}
+.availability-result[data-state="ok"] {
+  color: #244f37;
+  background: #eaf0e6;
+}
+.availability-result[data-state="error"] {
+  color: #7d2e21;
+  background: #faede7;
+}

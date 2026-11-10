@@ -1,6 +1,6 @@
 # El sobre de las ocho
 
-Portal académico de Sistemas de Comunicaciones y Seguridad Informática, Universidad Cooperativa de Colombia. **Etapas 1 y 2A:** portada, salud, cuentas SQLite, sesiones privadas, TOTP docente y RBAC en FastAPI detrás de Nginx. Publicación, asignaciones, descargas, cifrado del examen, reloj didáctico y laboratorio continúan pendientes.
+Portal académico de Sistemas de Comunicaciones y Seguridad Informática, Universidad Cooperativa de Colombia. **Etapas 1, 2A y 2B:** portada, salud, identidad/TOTP/RBAC y disponibilidad por asignación y apertura, en FastAPI detrás de Nginx. Reloj y metadatos en la SQLite existente. Publicación, descarga, cifrado, integridad del examen y laboratorio continúan pendientes.
 
 ## Ejecutar en CMD de Windows
 
@@ -15,7 +15,7 @@ docker compose up -d --build --wait --wait-timeout 120
 start http://127.0.0.1:8080
 ```
 
-La portada permite iniciar sesión para acceder a los paneles privados docente y estudiante. Las funciones de evaluación están pendientes de habilitación. El laboratorio administrativo no tiene rutas ni controles operativos. **Comprobar conexión** consulta realmente `/health`. La navegación admite teclado y enlace de salto al contenido; sin JavaScript se conserva el acceso al JSON de salud y los formularios de acceso funcionan con envío HTML nativo.
+La portada permite iniciar sesión para acceder a los paneles privados docente y estudiante. Los paneles muestran asignación y programación; la entrega de documentos sigue pendiente. El laboratorio administrativo no tiene rutas ni controles operativos. **Comprobar conexión** consulta realmente `/health`. La navegación admite teclado y enlace de salto al contenido; sin JavaScript se conserva el acceso al JSON de salud y los formularios de acceso funcionan con envío HTML nativo.
 
 ## Inicializar las cuentas ficticias
 
@@ -33,6 +33,29 @@ Estudiante: contraseña → panel estudiante. Docente: contraseña → código d
 El almacenamiento real se mantiene sin cuentas predefinidas hasta que el operador ejecute el alta. Las pruebas generan cuentas efímeras aisladas. HTTP local no cifra credenciales: usar solo cuentas ficticias. Cookies HttpOnly/SameSite y CSRF están activos; Secure se habilitará al configurar HTTPS con TLS real en la etapa de red.
 
 HTTP se usa exclusivamente para desarrollo local en esta etapa. HTTPS/TLS corresponde a la etapa 4. El único puerto publicado es `127.0.0.1:8080` de Nginx; el puerto 8000 de FastAPI no se publica en el anfitrión.
+
+## Disponibilidad y reloj de ensayo (2B)
+
+Tras inicializar las cuentas, preparar el caso cerrado:
+
+    docker compose exec app python -m app.demo preparar --fecha 2026-11-09
+    docker compose exec app python -m app.demo reloj estado
+
+En el panel estudiante, pulsar **Actualizar disponibilidad**: 07:59:59 devuelve 403. Cambiar solo el reloj del recurso y repetir después de cada comando:
+
+    docker compose exec app python -m app.demo reloj fijar 2026-11-09T08:00:00
+    docker compose exec app python -m app.demo reloj fijar 2026-11-09T08:01:00
+    docker compose exec app python -m app.demo asignacion retirar
+    docker compose exec app python -m app.demo asignacion asignar
+    docker compose exec app python -m app.demo auditoria --limite 20
+
+Con asignación: 200 a las 08:00 y 08:01. Al retirarla: 403; al reasignar: 200. Ninguna respuesta entrega archivos.
+
+Para tiempo real: ejecutar el comando siguiente (puede autorizar si ya pasó la apertura):
+
+    docker compose exec app python -m app.demo reloj normal
+
+Para cerrar y repetir el ensayo, volver a **preparar --fecha 2026-11-09**: restablece asignación y 07:59:59 sin borrar identidad ni bitácora. TOTP y sesiones mantienen tiempo real. No hay controles administrativos web. Comandos y política en [AUTORIZACION_HORARIO.md](docs/AUTORIZACION_HORARIO.md); resultados en [evidencia 2B](docs/evidencias/etapa-02b.md).
 
 ## Comprobar y reiniciar
 
@@ -66,11 +89,11 @@ Para arrancar otra vez: `docker compose up -d --wait --wait-timeout 120`. `docke
 La imagen de pruebas es temporal y **no añade un tercer servicio a Compose**. No publica puertos y se ejecuta sin red. No instala pytest en la imagen del portal.
 
 ```bat
-docker build --target test -t el-sobre-de-las-ocho-tests:etapa2a .
-docker run --rm --network none --read-only --tmpfs /tmp el-sobre-de-las-ocho-tests:etapa2a
+docker build --target test -t el-sobre-de-las-ocho-tests:etapa2b .
+docker run --rm --network none --read-only --tmpfs /tmp el-sobre-de-las-ocho-tests:etapa2b
 ```
 
-Se conservan nueve casos de regresión de portada/infraestructura y se añaden pruebas de identidad, MFA, CSRF, RBAC, vigencia, revocación y ausencia de secretos. `/docente` sin sesión ahora devuelve 401; las rutas inexistentes siguen en 404. La suite usa bases temporales sin acceder al volumen real. Resultados en [la ficha 2A](docs/evidencias/etapa-02a.md); el historial de etapa 1 permanece en [su ficha](docs/evidencias/etapa-01.md). P1 solo tiene cobertura parcial de identidad, sin publicación; P2–P10 siguen pendientes.
+Se conservan nueve casos de regresión de portada/infraestructura y se añaden pruebas de identidad, MFA, CSRF, RBAC, vigencia, revocación y ausencia de secretos. `/docente` sin sesión ahora devuelve 401; las rutas inexistentes siguen en 404. La suite usa bases temporales sin acceder al volumen real. Resultados en [la ficha 2A](docs/evidencias/etapa-02a.md); el historial de etapa 1 permanece en [su ficha](docs/evidencias/etapa-01.md). P1 conserva cobertura parcial de identidad; P2 verifica el límite mediante JSON, sin original; P3–P10 siguen pendientes.
 
 Revisión de navegador opcional, solo para desarrollo: requiere Node/npm y Google Chrome instalado; no se necesita para usar el portal. Las herramientas quedan en `.qa/`, ignorada por Git y excluida del contexto Docker:
 
@@ -113,4 +136,4 @@ La [guía Windows](docs/GUIA_WINDOWS.md) contiene los procedimientos operativos.
 
 Referencias técnicas consultadas: [plantillas en FastAPI](https://fastapi.tiangolo.com/advanced/templates/), [TestClient y pytest](https://fastapi.tiangolo.com/tutorial/testing/) y [salud y orden de arranque en Compose](https://docs.docker.com/compose/how-tos/startup-order/). Las fuentes académicas y páginas siguen siendo los PDF locales indicados en la matriz.
 
-La etapa 2A implementa identidad y RBAC. La etapa 2B requiere autorización; asignaciones, política horaria y examen protegido no se implementan en esta entrega.
+2A implementa identidad/RBAC y 2B añade ABAC de disponibilidad, asignaciones y reloj independiente. La etapa 3 requiere autorización: cifrado, integridad y entrega del examen siguen pendientes.

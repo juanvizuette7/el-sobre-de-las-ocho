@@ -1,6 +1,75 @@
 # Guía del estudiante: entender el sobre
 
-**Material privado de aprendizaje. Etapas 1 y 2A implementadas; examen protegido pendiente.** Cuentas, sesiones, TOTP y permisos por rol ya funcionan; asignaciones, horario y cifrado todavía no. La especificación principal es `docs/planificacion/Fase_3_Diseno_El_sobre_de_las_ocho.pdf` (F3). Para relacionar cada concepto con la clase y página original, consulta MATRIZ_CLASES. Esta guía no forma parte de las pantallas del producto ni de una entrega pública; estar ignorada no retira la copia que ya estaba versionada en Git.
+**Material privado de aprendizaje. Etapas 1, 2A y 2B implementadas; examen protegido pendiente.** Cuentas, sesiones, TOTP y permisos por rol ya funcionan; asignaciones y horario también funcionan; cifrado y descarga todavía no. La especificación principal es `docs/planificacion/Fase_3_Diseno_El_sobre_de_las_ocho.pdf` (F3). Para relacionar cada concepto con la clase y página original, consulta MATRIZ_CLASES. Esta guía no forma parte de las pantallas del producto ni de una entrega pública; estar ignorada no retira la copia que ya estaba versionada en Git.
+
+## Disponibilidad y reloj de la etapa 2B
+
+El **reloj didáctico** es una referencia que solo consulta la regla de apertura de evaluaciones. No es otro reloj de Windows. En modo fijo se queda detenido en el instante elegido; en modo normal lee la hora real del servidor y la expresa en Bogotá.
+
+No cambiamos la hora de Windows porque TOTP y las sesiones dependen del tiempo real. Adelantar el recurso a 2035 no debe caducar tu sesión ni cambiar el código actual del autenticador. Si una sesión vence realmente, atrasar el reloj de la evaluación tampoco la recupera.
+
+**RBAC** pregunta si tu rol permite la operación. **ABAC** añade atributos: quién solicita, qué evaluación es, si está asignada y si llegó su fecha de apertura. Un estudiante autenticado puede recibir 403 por horario o por no tener esa evaluación; no basta con haber iniciado sesión.
+
+Autorizar una solicitud significa que el servidor acaba de comprobar esas condiciones con datos de su base y devolvió una decisión. No significa que un botón se volvió verde. En esta etapa un 200 significa que se cumplen asignación y apertura, **no que se entregó un documento**. La respuesta dice descarga_habilitada: false y la interfaz lo informa.
+
+### Recorrido sencillo
+
+1. Inicia los servicios y entra como estudiante con tus credenciales.
+2. En CMD ejecuta el comando preparar. Crea los metadatos del caso y su asignación, y deja el tiempo en 07:59:59.
+3. Recarga el panel o pulsa Actualizar disponibilidad: debe indicar restricción (403).
+4. Fija 08:00:00 y repite con la misma sesión: 200 por apertura cumplida. También debe autorizar a las 08:01.
+5. Retira la asignación a las 08:01 y consulta: 403 aunque la hora sea correcta.
+6. Reasigna y consulta: 200. Vuelve a preparar para dejar el caso cerrado a las 07:59:59.
+
+Comandos CMD reales, desde la carpeta del proyecto:
+
+    docker compose exec app python -m app.demo preparar --fecha 2026-11-09
+    docker compose exec app python -m app.demo reloj fijar 2026-11-09T08:00:00
+    docker compose exec app python -m app.demo reloj fijar 2026-11-09T08:01:00
+    docker compose exec app python -m app.demo asignacion retirar
+    docker compose exec app python -m app.demo asignacion asignar
+    docker compose exec app python -m app.demo preparar --fecha 2026-11-09
+
+Se usan siempre una fecha completa y America/Bogota. Comparar solo las horas permitiría confundir días distintos. Por eso un día anterior a las 08:01 todavía está antes de la apertura del día previsto.
+
+**Restaurar tiene dos sentidos:** reloj normal vuelve al tiempo real; puede estar después de las 08:00 y permitir acceso. Preparar restablece el caso de ensayo cerrado, incluyendo su asignación y las 07:59:59. No son la misma operación.
+
+    docker compose exec app python -m app.demo reloj normal
+    docker compose exec app python -m app.demo reloj estado
+    docker compose exec app python -m app.demo auditoria --limite 20
+
+Los datos del reloj se guardan en SQLite: reiniciar Docker no los borra. Si se pierde esa referencia y ya hay evaluaciones, la política no debe asumir que todo está abierto. Exige una configuración local explícita. No borres el volumen para repetir la demo.
+
+### Archivos y decisiones
+
+| Archivo / función | Responsabilidad |
+|---|---|
+| app/clock.py: leer_reloj | Devuelve la referencia fija o el tiempo real en Bogotá |
+| app/demo.py: preparar_ensayo | Configura un único caso ficticio a las 08:00 y lo deja cerrado |
+| app/demo.py: cambiar_asignacion | Otorga o retira la relación con una cuenta existente |
+| app/policy.py: decidir_disponibilidad | Aplica identidad, rol, asignación y apertura en orden |
+| app/policy.py: consultar_disponibilidad | Revalida sesión, consulta datos, llama a la política y audita |
+| app/evaluations.py | Obtiene las evaluaciones del panel y responde la consulta JSON |
+| app/audit.py | Registra tiempo real separado del tiempo didáctico |
+| tests/test_availability.py | Comprueba fronteras, asignación, independencia y reinicio |
+
+No hay controles de reloj en la web, ni siquiera para el docente. La autorización administrativa del comando depende del acceso local a Docker. Al estudiante no se le entrega Docker ni un endpoint que ejecute la CLI.
+
+### Preguntas para sustentar
+
+| Pregunta | Respuesta correcta |
+|---|---|
+| ¿Qué ocurre exactamente a las 08:00? | La comparación es inclusiva: referencia igual o posterior a la apertura autoriza si identidad, rol y asignación son correctos. |
+| ¿Un usuario sin sesión puede consultar? | Recibe 401. Un estudiante ajeno recibe 403 aun con el horario cumplido. |
+| ¿Cambiar la URL o la hora del navegador abre la evaluación? | No. Solo se usa el ID solicitado; cuenta, asignación, apertura y reloj se obtienen en servidor. |
+| ¿Ya se entrega el examen original? | No. Es una decisión sobre metadatos; faltan cifrado, integridad y descarga de la etapa 3. |
+| ¿El docente puede cambiar el reloj desde su panel? | No hay controles administrativos web. La herramienta es local en el contenedor. |
+| ¿Cómo se prueba otro estudiante sin crear usuarios reales? | La suite crea otro estudiante en una base temporal. La demo local también muestra el caso no asignado al retirar la asignación de la cuenta de prueba. |
+| ¿Qué hora se guarda en la bitácora? | El instante real del evento y la referencia didáctica de la decisión se guardan en campos distintos. |
+| ¿Cambiaste TOTP? | No. La prueba acepta un código actual incluso con el reloj de evaluaciones adelantado; las sesiones siguen venciendo con tiempo real. |
+| ¿Ya implementaste Zero Trust completo? | Aplico verificación explícita y mínimo privilegio en cada consulta; no es una infraestructura empresarial completa. |
+
+La evidencia profesional está en [etapa-02b.md](evidencias/etapa-02b.md). No captures cookies, contraseñas o códigos. El comando auditoria selecciona solo campos de autorización; no vuelca tablas de sesiones.
 
 ## Identidad 2A en palabras sencillas
 
@@ -20,7 +89,7 @@ Hay tres estados: sesión anónima del formulario, desafío MFA y sesión comple
 
 El alta se realiza en una terminal privada con `docker compose exec app python -m app.manage inicializar`. Las contraseñas se leen sin eco. El secreto/URI aparece para configurarlo una vez en un autenticador local compatible; no lo captures ni subas a Git. El comando pide un código para confirmar el enrolamiento y consume ese paso; espera al siguiente antes del primer login. No pegues contraseñas o secretos en este chat. Los pasos técnicos completos están en IDENTIDAD_ACCESO.
 
-**RBAC** aplica permisos según rol. `app/policy.py` comprueba sesión completa, cuenta activa, rol y prueba MFA. El estudiante no puede hacerse docente cambiando parámetros o la URL. **ABAC** añadirá condiciones del recurso: qué examen te asignaron y si ya llegó su apertura. Eso no existe todavía; la política está separada para añadirlo en 2B sin quitar RBAC. Que exista esta separación no significa que ya se apliquen asignaciones u horarios.
+**RBAC** aplica permisos según rol. `app/policy.py` comprueba sesión completa, cuenta activa, rol y prueba MFA. El estudiante no puede hacerse docente cambiando parámetros o la URL. **ABAC** ya comprueba en 2B qué evaluación está asignada a la cuenta y si llegó su apertura. Se añade a RBAC; la descarga y la integridad del archivo todavía no existen.
 
 **CSRF** es intentar que tu navegador envíe una acción usando tu sesión desde otra página. Nuestros formularios requieren un token ligado a la sesión y un origen exactamente permitido. También protegemos iniciar sesión y salir. SameSite ayuda, pero no reemplaza esa comprobación. Nginx usa `Referrer-Policy: same-origin`: el ajuste permitió que los POST legítimos conservaran su origen, sin aceptar valores nulos o ajenos.
 
@@ -42,7 +111,7 @@ Los límites evitan probar códigos sin fin: cinco intentos de contraseña por c
 
 ### Cómo demostrarlo y responder preguntas
 
-Usa dos sesiones de navegador. Muestra el panel estudiante y luego escribe la URL docente: debe responder 403. En la otra sesión entra como docente, detente antes del código e intenta el panel: 401. Completa TOTP y muestra el panel autorizado. Cierra sesión y solicita otra vez el panel: 401. Conserva respuestas y fichas sin capturar contraseñas, OTP o cookies. No necesitas esperar a las 08:00: todavía no estamos probando horario.
+Usa dos sesiones de navegador. Muestra el panel estudiante y luego escribe la URL docente: debe responder 403. En la otra sesión entra como docente, detente antes del código e intenta el panel: 401. Completa TOTP y muestra el panel autorizado. Cierra sesión y solicita otra vez el panel: 401. Conserva respuestas y fichas sin capturar contraseñas, OTP o cookies. No necesitas esperar a las 08:00 reales: el recorrido horario se controla con la CLI descrita en la sección 2B.
 
 La suite de pytest usa claves aleatorias y bases temporales; no opera sobre tus cuentas. El script de navegador de identidad levanta otro proyecto temporal en 8081 con datos en memoria y lo retira al terminar. Eso permite repetir sin restablecer tus contraseñas o el secreto. No se usa ese autenticador programático de prueba para entrar al portal real.
 
@@ -52,7 +121,7 @@ La suite de pytest usa claves aleatorias y bases temporales; no opera sobre tus 
 | ¿Qué tiene la cookie? | Un identificador aleatorio; la cuenta, el rol y el vencimiento se verifican en servidor. |
 | ¿La contraseña docente ya autoriza? | No: solo crea un desafío de cinco minutos, sin permisos del panel. |
 | ¿El código TOTP se puede repetir? | El paso aceptado se consume en una transacción; otro desafío no puede reutilizarlo. |
-| ¿Ya hay ABAC? | No. RBAC está probado; asignaciones y horario son trabajo pendiente de 2B. |
+| ¿Ya hay ABAC? | Sí, para disponibilidad de metadatos: asignación y fecha/hora se verifican después de identidad y rol. No hay todavía autorización de descarga con integridad. |
 | ¿La sesión es segura porque dice HttpOnly? | Ese atributo reduce acceso desde scripts. Aún falta HTTPS para proteger el tránsito. |
 | ¿Por qué no has cifrado el secreto TOTP en disco? | Por ahora tiene permisos y volumen privados. El administrador del equipo queda fuera de esa protección; no afirmo cifrado de reposo. |
 | ¿Zero Trust está completo? | Aplico verificación explícita y mínimo privilegio en estas rutas; no desplegué una arquitectura empresarial completa. |
@@ -189,9 +258,9 @@ La copia modificada es un detalle importante: la herramienta cambiará una letra
 
 Autenticación responde «¿quién eres?». Autorización responde «¿qué puedes hacer?». Auditoría responde «¿qué intentaste y cuál fue la decisión?». Son las tres partes de AAA estudiadas en clase 4.
 
-El rol docente puede publicar; el estudiante no. Eso es **RBAC**, permisos por rol. Además, el estudiante debe tener ese parcial asignado y cumplir la fecha/hora; es una decisión basada también en atributos, relacionada con **ABAC**. El servidor repite esas reglas aunque escribas directamente la URL. Aplicamos el principio de verificar cada solicitud; no significa haber desplegado una infraestructura empresarial completa de Zero Trust.
+En el diseño final, el rol docente podrá publicar y el estudiante no; esa operación sigue pendiente. Eso es **RBAC**, permisos por rol. Además, el estudiante debe tener ese parcial asignado y cumplir la fecha/hora; es una decisión basada también en atributos, relacionada con **ABAC**. El servidor repite esas reglas aunque escribas directamente la URL. Aplicamos el principio de verificar cada solicitud; no significa haber desplegado una infraestructura empresarial completa de Zero Trust.
 
-La contraseña no se guardará legible. Una función de derivación la transforma con una **sal** aleatoria por cuenta. La sal no es otra contraseña: permite que dos cuentas con la misma contraseña no tengan el mismo valor almacenado. Para contraseñas no basta aplicar una sola vez un hash rápido como SHA-256.
+La contraseña no se guarda legible. Una función de derivación la transforma con una **sal** aleatoria por cuenta. La sal no es otra contraseña: permite que dos cuentas con la misma contraseña no tengan el mismo valor almacenado. Para contraseñas no basta aplicar una sola vez un hash rápido como SHA-256.
 
 El docente necesitará además un código **TOTP**, que cambia con el tiempo y proviene de un secreto independiente. El autenticador local se prepara antes de la presentación y se mantiene separado del formulario de acceso. Es un segundo factor didáctico: en este proyecto una misma persona maneja las dos cuentas y las herramientas. Ni el secreto TOTP ni los códigos se muestran en evidencias (F3 p. 3).
 
@@ -247,4 +316,4 @@ Ejemplo **sin ejecutar**: clase 4, estudiante asignado, original intacto, reloj 
 
 Lee el [resumen](RESUMEN_PROYECTO.md) para conocer requisitos y P1–P10; la [arquitectura](ARQUITECTURA.md) para ver responsabilidades y archivos propuestos; la [matriz](MATRIZ_CLASES.md) para preparar la explicación de cada clase; y el [plan](PLAN_IMPLEMENTACION.md) para construir en seis etapas.
 
-La [GUIA_WINDOWS.md](GUIA_WINDOWS.md) contiene los comandos operativos; [IDENTIDAD_ACCESO.md](IDENTIDAD_ACCESO.md) detalla alta y sesiones. Identificar usuarios ya funciona en 2A. La [ficha 2A](evidencias/etapa-02a.md) registra sus pruebas; restaurar un examen y cumplir íntegramente P1–P10 siguen pendientes. No se avanza a 2B sin autorización.
+La [GUIA_WINDOWS.md](GUIA_WINDOWS.md) contiene los comandos operativos; [IDENTIDAD_ACCESO.md](IDENTIDAD_ACCESO.md) detalla alta y sesiones. Identificar usuarios ya funciona en 2A. La [ficha 2A](evidencias/etapa-02a.md) registra sus pruebas; restaurar un examen y cumplir íntegramente P1–P10 siguen pendientes. No se avanza a etapa 3 sin autorización.

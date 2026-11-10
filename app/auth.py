@@ -8,6 +8,7 @@ from starlette.concurrency import run_in_threadpool
 
 from app.audit import registrar
 from app.db import conexion
+from app.evaluations import evaluaciones_del_panel
 from app.policy import exigir_rol
 from app.security import leer_secreto, paso_totp, verificar_clave
 from app.sessions import NOMBRE_COOKIE, buscar, crear, excede_limite, fijar_cookie
@@ -170,10 +171,12 @@ async def salir(request: Request):
 @router.get("/docente")
 def panel_docente(request: Request, sesion=Depends(exigir_rol("DOCENTE"))):
     """No habilita publicación ni controles administrativos."""
-    return pagina(request, "panel.html", sesion=sesion, docente=True)
+    return pagina(request, "panel.html", sesion=sesion, docente=True,
+                  evaluaciones=evaluaciones_del_panel(request, sesion, docente=True))
 
 
 @router.get("/estudiante")
 def panel_estudiante(request: Request, sesion=Depends(exigir_rol("ESTUDIANTE"))):
-    """Panel privado; todavía no existen asignaciones ni descargas."""
-    return pagina(request, "panel.html", sesion=sesion, docente=False)
+    """Panel privado con asignaciones y decisión de disponibilidad, sin documentos."""
+    return pagina(request, "panel.html", sesion=sesion, docente=False,
+                  evaluaciones=evaluaciones_del_panel(request, sesion, docente=False))

@@ -1,6 +1,17 @@
-# Guía de ejecución en Windows — etapas 1 y 2A
+# Guía de ejecución en Windows — etapas 1, 2A y 2B
 
 Los comandos de uso y pruebas están completos en [README.md](../README.md). Están escritos para **CMD**, sin variables o sintaxis exclusivas de PowerShell. Abre Docker Desktop con motor Linux antes de ejecutarlos. Internet es necesario para la primera construcción; con imágenes construidas puedes volver a iniciar sin reinstalar.
+
+## Actualización 2B
+
+La política y todos los comandos están en [AUTORIZACION_HORARIO.md](AUTORIZACION_HORARIO.md). El reloj persistente se administra con app.demo dentro de Docker y no modifica Windows. Estado de ensayo final: evaluacion-001 asignada a estudiante, apertura 2026-11-09T08:00:00-05:00 y referencia fija 07:59:59. Preparar restablece ese caso; reloj normal vuelve a la hora real y puede autorizar después de la apertura.
+
+    docker compose exec app python -m app.demo preparar --fecha 2026-11-09
+    docker compose exec app python -m app.demo reloj estado
+    docker compose exec app python -m app.demo reloj fijar 2026-11-09T08:00:00
+    docker compose exec app python -m app.demo auditoria --limite 20
+
+No hay bibliotecas adicionales: ZoneInfo y America/Bogota se comprobaron en el contenedor. TOTP y sesiones conservan tiempo real. Sin descarga aún. Resultados en la ficha de etapa 2B.
 
 ## Actualización 2A
 
@@ -62,8 +73,8 @@ El último comando requiere Python de Windows; los anteriores solo Docker/cURL. 
 Para pytest sin instalar Python en Windows:
 
 ```bat
-docker build --target test -t el-sobre-de-las-ocho-tests:etapa2a .
-docker run --rm --network none --read-only --tmpfs /tmp el-sobre-de-las-ocho-tests:etapa2a
+docker build --target test -t el-sobre-de-las-ocho-tests:etapa2b .
+docker run --rm --network none --read-only --tmpfs /tmp el-sobre-de-las-ocho-tests:etapa2b
 ```
 
 ## Reinicio y parada
